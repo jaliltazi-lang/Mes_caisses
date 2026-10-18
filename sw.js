@@ -1,6 +1,6 @@
 // Mes caisses : garde l'appli dans le téléphone pour qu'elle s'ouvre sans réseau.
 // Changez le numéro de version à chaque mise à jour des fichiers.
-var VERSION = 'mes-caisses-v1';
+var VERSION = 'mes-caisses-v3';
 var FICHIERS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', function (e) {

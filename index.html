@@ -28,11 +28,12 @@
   .etat.attente i{background:#F5C451} .etat.horsligne i{background:#C9CFCA} .etat.erreur i{background:#FF8A7A}
   main{padding:0 16px 100px;max-width:560px;margin:0 auto}
   h2{font-size:14px;color:var(--gris);font-weight:600;margin:22px 2px 8px;text-transform:uppercase;letter-spacing:.4px}
-  .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:-26px}
-  .act{border:0;border-radius:16px;padding:16px 6px;font-size:16px;font-weight:700;color:#fff;
+  .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:-26px}
+  .act{border:0;border-radius:16px;padding:14px 4px;font-size:14px;font-weight:700;color:#fff;
     box-shadow:0 3px 10px rgba(0,0,0,.12);display:flex;flex-direction:column;align-items:center;gap:4px}
   .act .ic{font-size:26px;line-height:1}
-  .act.dep{background:var(--rouge)} .act.rec{background:var(--vert2)} .act.tra{background:var(--bleu)}
+  .act.reg{background:#6B4E9B} .act.enc{background:#1F7A6B} .act.aut{background:#fff;color:var(--texte);border:1px solid var(--trait);box-shadow:none} .act.dep{background:var(--rouge)} .act.rec{background:var(--vert2)} .act.tra{background:var(--bleu)}
+  .lien-l{cursor:pointer}
   .autre{display:block;margin:10px auto 0;background:none;border:0;color:var(--gris);font-size:14px;text-decoration:underline}
   .caisses{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .caisse{background:var(--carte);border-radius:14px;padding:12px;border:1px solid var(--trait);text-align:left;color:var(--texte)}
@@ -102,11 +103,13 @@
 <main>
   <section id="v-accueil">
     <div class="actions">
-      <button class="act dep" onclick="ouvrirForm('dep')"><span class="ic">−</span>Dépense</button>
-      <button class="act rec" onclick="ouvrirForm('rec')"><span class="ic">+</span>Recette</button>
+      <button class="act dep" onclick="ouvrirForm('dep')"><span class="ic">−</span>Achat</button>
+      <button class="act reg" onclick="ouvrirForm('reg')"><span class="ic">✓</span>Régler</button>
       <button class="act tra" onclick="ouvrirForm('tra')"><span class="ic">⇄</span>Transfert</button>
+      <button class="act rec" onclick="ouvrirForm('rec')"><span class="ic">+</span>Vente</button>
+      <button class="act enc" onclick="ouvrirForm('enc')"><span class="ic">⬇</span>Encaisser</button>
+      <button class="act aut" onclick="ouvrirForm('aut')"><span class="ic">≡</span>Autre</button>
     </div>
-    <button class="autre" onclick="ouvrirForm('aut')">Autre écriture (débit / crédit libres)</button>
 
     <h2>Mes caisses</h2>
     <div class="caisses" id="caisses"></div>
@@ -115,6 +118,9 @@
     <div class="tab" id="mois"></div>
     <div class="note" id="noteMaj"></div>
   </section>
+
+  <section id="v-lettrage" style="display:none"></section>
+  <section id="v-soldes" style="display:none"></section>
 
   <section id="v-histo" style="display:none">
     <h2>Opérations</h2>
@@ -126,6 +132,8 @@
 <nav>
   <button id="n-accueil" class="on" onclick="vue('accueil')"><span class="i">⌂</span>Accueil</button>
   <button id="n-histo" onclick="vue('histo')"><span class="i">☰</span>Historique</button>
+  <button id="n-soldes" onclick="vue('soldes')"><span class="i">Σ</span>Soldes</button>
+  <button id="n-lettrage" onclick="vue('lettrage')"><span class="i">✓</span>Lettrage</button>
 </nav>
 
 <!-- Formulaire de saisie -->
@@ -134,9 +142,14 @@
   <div class="corps">
     <input id="f-montant" class="montant" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
     <div class="unite">MAD</div>
+    <div id="bloc-tiers" style="display:none"><label class="lb" id="lb-tiers">Fournisseur</label><select id="f-tiers" class="ch"></select>
+      <div class="note" id="note-tiers" style="margin-top:6px"></div></div>
+    <div id="bloc-rub"><label class="lb" id="lb-rub">Rubrique</label><select id="f-rub"></select></div>
+    <div id="bloc-paye" style="display:none"><label class="lb" id="lb-paye">Payé maintenant</label>
+      <input id="f-paye" class="ch" type="text" inputmode="decimal" placeholder="0">
+      <div class="choix" style="margin-top:8px"><button type="button" class="chip" data-p="tout">Tout</button><button type="button" class="chip" data-p="moitie">La moitié</button><button type="button" class="chip" data-p="rien">Rien (à payer plus tard)</button></div></div>
     <div id="bloc-caisse"><label class="lb" id="lb-caisse">Payé avec</label><div class="choix" id="c-caisse"></div></div>
     <div id="bloc-vers" style="display:none"><label class="lb">Vers la caisse</label><div class="choix" id="c-vers"></div></div>
-    <div id="bloc-rub"><label class="lb" id="lb-rub">Rubrique</label><select id="f-rub"></select></div>
     <div id="bloc-libre" style="display:none">
       <label class="lb">Compte DÉBIT (ce qui reçoit)</label><select id="f-deb"></select>
       <label class="lb">Compte CRÉDIT (ce qui donne)</label><select id="f-cre"></select>
@@ -215,15 +228,18 @@ function toast(msg, err){
 function calculer(){
   if(!CACHE){ D=null; return; }
   var typeDe={}; CACHE.comptes.forEach(function(c){ typeDe[c.nom]=c.type; });
-  var soldes={}; CACHE.caisses.forEach(function(c){ soldes[c.nom]=c.solde; });
+  var soldes=Object.assign({}, CACHE.soldes||{}); CACHE.caisses.forEach(function(c){ soldes[c.nom]=c.solde; });
+  var anCourant=String(new Date().getFullYear());
+  var annee = String(CACHE.anneeCle||'')===anCourant ? Object.assign({}, CACHE.annee||{}) : {};
   var mc=moisCourant();
   var mois = CACHE.cleMois===mc ? JSON.parse(JSON.stringify(CACHE.mois||{})) : {};
   var recents = CACHE.recents.map(function(o){ var x=Object.assign({},o); x.typeDebit=typeDe[o.debit]||''; x.typeCredit=typeDe[o.credit]||''; return x; });
 
   function effet(e, signe){
     var m=Number(e.montant)*signe;
-    if(e.debit in soldes) soldes[e.debit]+=m;
-    if(e.credit in soldes) soldes[e.credit]-=m;
+    soldes[e.debit]=(soldes[e.debit]||0)+m;
+    soldes[e.credit]=(soldes[e.credit]||0)-m;
+    if(String(e.date).slice(0,4)===anCourant){ annee[e.debit]=(annee[e.debit]||0)+m; annee[e.credit]=(annee[e.credit]||0)-m; }
     if(String(e.date).slice(0,7)===mc){
       var a=e.activite||'Sans activité'; if(!mois[a]) mois[a]={dep:0,rec:0};
       if(typeDe[e.debit]==='Charge') mois[a].dep+=m;
@@ -236,6 +252,18 @@ function calculer(){
     if(op.type==='ajout'){
       if(!op.erreur) effet(op.e, 1);
       recents.push(Object.assign({}, op.e, {id:op.id, attente:!op.erreur, erreur:op.erreur||'', typeDebit:typeDe[op.e.debit]||'', typeCredit:typeDe[op.e.credit]||''}));
+    } else if(op.type==='groupe'){
+      op.ecritures.forEach(function(e){
+        if(!op.erreur) effet(e, 1);
+        recents.push(Object.assign({}, e, {id:op.id, groupe:true, attente:!op.erreur, erreur:op.erreur||'', typeDebit:typeDe[e.debit]||'', typeCredit:typeDe[e.credit]||''}));
+      });
+    } else if(op.type==='modif'){
+      var j=-1; recents.forEach(function(r,k){ if(r.ligne===op.ligne) j=k; });
+      if(j<0) return;
+      if(op.erreur){ recents[j].erreur=op.erreur; recents[j].opModif=op.id; return; }
+      effet(recents[j], -1);
+      Object.assign(recents[j], op.e, {attente:true, typeDebit:typeDe[op.e.debit]||'', typeCredit:typeDe[op.e.credit]||''});
+      effet(recents[j], 1);
     } else if(op.type==='suppr'){
       var i=-1; recents.forEach(function(r,k){ if(r.ligne===op.ligne) i=k; });
       if(op.erreur){ if(i>=0){ recents[i].erreur=op.erreur; recents[i].opSuppr=op.id; } return; }
@@ -249,10 +277,12 @@ function calculer(){
   });
   D = {
     caisses: CACHE.caisses.map(function(c){ return {nom:c.nom, solde:Math.round(soldes[c.nom]*100)/100}; }),
-    comptes: CACHE.comptes, activites: CACHE.activites,
+    comptes: comptesAvecAttente(), activites: CACHE.activites,
+    tiers: comptesAvecAttente().filter(function(c){return c.type==='Tiers';}),
     charges: CACHE.comptes.filter(function(c){return c.type==='Charge';}),
     produits: CACHE.comptes.filter(function(c){return c.type==='Produit';}),
-    mois: mois, recents: recents
+    mois: mois, recents: recents, soldes: soldes, annee: annee,
+    lettrage: lettrageAvecAttente()
   };
 }
 
@@ -341,17 +371,102 @@ function dessiner(){
   document.getElementById('mois').innerHTML=h;
   document.getElementById('noteMaj').textContent = CACHE && CACHE.recuLe ? 'Soldes du Sheet reçus le '+new Date(CACHE.recuLe).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})+(FILE.length?', + vos saisies en attente.':'.') : '';
   dessinerHisto();
+  if(document.getElementById('v-lettrage').style.display!=='none') dessinerLettrage();
+  if(document.getElementById('v-soldes').style.display!=='none') dessinerSoldes();
 }
 document.getElementById('caisses').addEventListener('click', function(ev){
   var b=ev.target.closest('[data-caisse]'); if(!b) return; filtre=b.dataset.caisse; dessinerHisto(); vue('histo');
 });
 
 function vue(v){
-  document.getElementById('v-accueil').style.display=v==='accueil'?'':'none';
-  document.getElementById('v-histo').style.display=v==='histo'?'':'none';
-  document.getElementById('n-accueil').className=v==='accueil'?'on':'';
-  document.getElementById('n-histo').className=v==='histo'?'on':'';
+  ['accueil','histo','soldes','lettrage'].forEach(function(x){
+    document.getElementById('v-'+x).style.display = v===x?'':'none';
+    document.getElementById('n-'+x).className = v===x?'on':'';
+  });
+  if(v==='lettrage') dessinerLettrage();
+  if(v==='soldes') dessinerSoldes();
   window.scrollTo(0,0);
+}
+
+/* =========================================================
+   Lettrage : pointer ensemble les écritures d'un compte de tiers
+   qui se compensent (avance / remboursement, devis / paiements…)
+   ========================================================= */
+var LCOMPTE = '', LSEL = {}, LVOIR = 'ouvertes';
+function lettrageAvecAttente(){
+  var src = (CACHE && CACHE.lettrage) || {}, out = {};
+  Object.keys(src).forEach(function(k){ out[k] = src[k].map(function(x){ return Object.assign({}, x); }); });
+  FILE.forEach(function(op){
+    if(op.erreur || !out[op.compte]) return;
+    if(op.type==='lettrer'){
+      var ls = op.lignes.map(function(l){return l.ligne;});
+      out[op.compte].forEach(function(x){ if(ls.indexOf(x.ligne)>=0){ x.lettre='⏳'; x.att=true; } });
+    } else if(op.type==='delettrer'){
+      out[op.compte].forEach(function(x){ if(x.lettre===op.lettre){ x.lettre=''; x.att=true; } });
+    }
+  });
+  return out;
+}
+function signe(x){ return x.sens==='D' ? x.montant : -x.montant; }
+function dessinerLettrage(){
+  var z = document.getElementById('v-lettrage');
+  if(!D){ z.innerHTML=''; return; }
+  var comptes = Object.keys(D.lettrage).sort();
+  if(!comptes.length){
+    z.innerHTML='<h2>Lettrage</h2><div class="vide">Aucun compte de type « Tiers » avec des écritures.<br>Dans l\'onglet Comptes du Sheet, mettez le type « Tiers » aux comptes à lettrer (avances, fournisseurs…).</div>';
+    return;
+  }
+  if(comptes.indexOf(LCOMPTE)<0){ LCOMPTE = comptes[0]; LSEL = {}; }
+  var lignes = D.lettrage[LCOMPTE] || [];
+  var ouvertes = lignes.filter(function(x){return !x.lettre;});
+  var soldeOuvert = ouvertes.reduce(function(s,x){return s+signe(x);},0);
+  var sel = ouvertes.filter(function(x){return LSEL[x.ligne];});
+  var totalSel = sel.reduce(function(s,x){return s+signe(x);},0);
+  var h = '<h2>Lettrage</h2><select class="ch" id="lCompte">' + comptes.map(function(c){
+      var n = D.lettrage[c].filter(function(x){return !x.lettre;}).length;
+      return '<option value="'+esc(c)+'"'+(c===LCOMPTE?' selected':'')+'>'+esc(c)+' ('+n+' ouverte'+(n>1?'s':'')+')</option>';
+    }).join('') + '</select>';
+  var sensTxt = soldeOuvert>0.005 ? 'Solde débiteur : il vous doit' : soldeOuvert<-0.005 ? 'Solde créditeur : vous lui devez' : 'Tout est soldé';
+  h += '<div class="tab" style="margin-top:12px"><div class="r" style="grid-template-columns:1fr"><span>Reste non lettré</span></div>'+
+       '<div class="r" style="grid-template-columns:auto 1fr;gap:10px;align-items:baseline"><span style="font-size:20px;font-weight:700">'+mad(Math.abs(soldeOuvert))+'</span><span style="text-align:left;color:var(--gris)">'+sensTxt+'</span></div></div>';
+  h += '<div class="filtres" style="margin-top:12px">'+[['ouvertes','Non lettrées ('+ouvertes.length+')'],['lettrees','Lettrées']].map(function(f){
+      return '<button class="chip'+(LVOIR===f[0]?' on':'')+'" data-lv="'+f[0]+'">'+f[1]+'</button>';}).join('')+'</div>';
+  if(LVOIR==='ouvertes'){
+    h += '<p class="note" style="margin:10px 2px">Cochez les écritures qui se compensent (total = 0), puis « Lettrer ».</p>';
+    h += ouvertes.length ? ouvertes.map(function(x){
+      var s=signe(x);
+      return '<label class="op" style="cursor:pointer"><div style="display:flex;gap:12px;align-items:center"><input type="checkbox" data-l="'+x.ligne+'"'+(LSEL[x.ligne]?' checked':'')+' style="width:22px;height:22px">'+
+        '<div><div class="l1">'+esc(x.libelle||'(sans libellé)')+'</div><div class="l2">'+dateFr(x.date)+' · '+esc(x.contrepartie)+(x.att?' · ⏳':'')+'</div></div></div>'+
+        '<div style="text-align:right"><div class="m">'+mad(Math.abs(s))+'</div><div class="l2">'+(s>0?'Débit':'Crédit')+'</div></div></label>';
+    }).join('') : '<div class="vide">Toutes les écritures de ce compte sont lettrées 👍</div>';
+    h += '<div style="position:sticky;bottom:70px;margin-top:10px"><button class="valider" id="lGo" style="margin-top:0"'+(sel.length<2?' disabled':'')+'>'+
+      (sel.length<2 ? 'Cochez au moins 2 écritures' : 'Lettrer '+sel.length+' écritures'+(Math.abs(totalSel)<0.005?' ✓ équilibré':' · écart '+mad(Math.abs(totalSel))))+'</button></div>';
+  } else {
+    var groupes = {};
+    lignes.filter(function(x){return x.lettre;}).forEach(function(x){ (groupes[x.lettre]=groupes[x.lettre]||[]).push(x); });
+    var cles = Object.keys(groupes).sort(function(a,b){ return a.localeCompare(b, undefined, {numeric:true}); }).reverse();
+    h += cles.length ? cles.map(function(k){
+      var g = groupes[k], t = g.reduce(function(s,x){return s+signe(x);},0);
+      return '<div class="op" style="display:block"><div style="display:flex;justify-content:space-between"><b>Lettre '+esc(k)+'</b><span class="l2">'+g.length+' écritures'+(Math.abs(t)>0.005?' · écart '+mad(t):'')+'</span></div>'+
+        g.map(function(x){ var s=signe(x); return '<div class="l2" style="display:flex;justify-content:space-between;margin-top:4px;gap:8px"><span>'+dateFr(x.date)+' · '+esc(x.libelle||x.contrepartie)+'</span><span style="white-space:nowrap">'+(s>0?'D ':'C ')+mad(Math.abs(s))+'</span></div>'; }).join('')+
+        (k!=='⏳' ? '<button class="chip" data-del="'+esc(k)+'" style="margin-top:8px">Délettrer</button>' : '')+'</div>';
+    }).join('') : '<div class="vide">Aucune écriture lettrée sur ce compte.</div>';
+  }
+  z.innerHTML = h;
+  z.querySelector('#lCompte').onchange=function(){ LCOMPTE=this.value; LSEL={}; dessinerLettrage(); };
+  z.querySelectorAll('[data-lv]').forEach(function(b){ b.onclick=function(){ LVOIR=b.dataset.lv; dessinerLettrage(); }; });
+  z.querySelectorAll('[data-l]').forEach(function(c){ c.onchange=function(){ LSEL[Number(c.dataset.l)]=c.checked; dessinerLettrage(); }; });
+  var go = z.querySelector('#lGo');
+  if(go) go.onclick=function(){
+    if(Math.abs(totalSel)>0.005 && !confirm('Le total sélectionné n\'est pas nul ('+mad(totalSel)+'). Lettrer quand même (lettrage partiel) ?')) return;
+    FILE.push({id:nouvelId(), type:'lettrer', compte:LCOMPTE, lignes:sel.map(function(x){ return {ligne:x.ligne, sens:x.sens, montant:x.montant}; })});
+    ecrire(CLE_FILE, FILE); LSEL={}; calculer(); dessiner(); dessinerLettrage(); toast('Lettrage enregistré ✓'); synchroniser(false);
+  };
+  z.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){
+    if(!confirm('Délettrer la lettre '+b.dataset.del+' ?')) return;
+    FILE.push({id:nouvelId(), type:'delettrer', compte:LCOMPTE, lettre:b.dataset.del});
+    ecrire(CLE_FILE, FILE); calculer(); dessiner(); dessinerLettrage(); toast('Délettré ✓'); synchroniser(false);
+  }; });
 }
 function sens(o){
   if(o.typeDebit==='Charge'||o.typeCredit==='Charge') return 'dep';
@@ -394,21 +509,25 @@ function detail(o){
   if(o.ligne) rows.push(['Ligne du Journal',o.ligne]);
   var b = o.erreur ? '<div class="bandeau err">Refusée par le Sheet : '+esc(o.erreur)+'</div>' :
           o.attente ? '<div class="bandeau att">Enregistrée dans le téléphone, pas encore envoyée au Sheet. Elle partira dès que le réseau revient.</div>' : '';
-  var lib = o.attente||(o.erreur&&!o.ligne) ? 'Annuler cette saisie' : o.erreur ? 'Abandonner la suppression' : 'Supprimer cette opération';
+  var lib = o.id ? 'Annuler cette saisie' : o.opModif ? 'Abandonner la modification' : o.opSuppr ? 'Abandonner la suppression' : 'Supprimer cette opération';
   document.getElementById('detailCorps').innerHTML = b + rows.map(function(r){return '<div class="ligne2"><span>'+r[0]+'</span><span>'+esc(r[1])+'</span></div>';}).join('') +
+    '<button class="valider" id="btnModif">✏️ Modifier</button>' +
     '<button class="suppr" id="btnSuppr">'+lib+'</button>';
   document.getElementById('btnSuppr').onclick=supprimer;
+  document.getElementById('btnModif').onclick=function(){ fermer('detail'); ouvrirForm('aut', o); };
   document.getElementById('detail').className='ecran on';
 }
 function supprimer(){
   var o=DETAIL; if(!o) return;
   if(o.id){                         // saisie pas encore envoyée (ou refusée) : on la retire du téléphone
-    if(!confirm('Annuler la saisie « '+(o.libelle||o.debit)+' » de '+mad(o.montant)+' ?')) return;
+    if(!confirm(o.groupe ? 'Annuler cette saisie (facture et règlement liés) ?' : 'Annuler la saisie « '+(o.libelle||o.debit)+' » de '+mad(o.montant)+' ?')) return;
     var cible=FILE.filter(function(op){return op.id===o.id;})[0];
     FILE=FILE.filter(function(op){return op.id!==o.id;});
     // si un envoi a déjà été tenté, le Sheet l'a peut-être reçue : on lui demande de l'annuler
     if(cible && cible.tente && !cible.erreur)
       FILE.push({id:nouvelId(), type:'annul', cible:o.id, controle:{debit:o.debit, credit:o.credit, montant:o.montant}});
+  } else if(o.opModif){             // modification refusée : on l'abandonne
+    FILE=FILE.filter(function(op){return op.id!==o.opModif;});
   } else if(o.opSuppr){             // suppression refusée : on l'abandonne
     FILE=FILE.filter(function(op){return op.id!==o.opSuppr;});
   } else {                          // opération déjà dans le Sheet : suppression mise en file
@@ -423,8 +542,10 @@ function supprimer(){
    Formulaire de saisie
    ========================================================= */
 var CONF={
-  dep:{titre:'Dépense', coul:'var(--rouge)', lbCaisse:'Payé avec la caisse', lbRub:'Rubrique de dépense'},
-  rec:{titre:'Recette', coul:'var(--vert2)', lbCaisse:'Encaissé dans la caisse', lbRub:'Rubrique de recette'},
+  dep:{titre:'Achat / dépense', coul:'var(--rouge)', lbCaisse:'Payé avec la caisse', lbRub:'Catégorie de dépense', lbTiers:'Fournisseur', grp:'Fournisseur', lbPaye:'Payé maintenant'},
+  rec:{titre:'Vente / recette', coul:'var(--vert2)', lbCaisse:'Encaissé dans la caisse', lbRub:'Catégorie de recette', lbTiers:'Client', grp:'Client', lbPaye:'Encaissé maintenant'},
+  reg:{titre:'Régler un fournisseur', coul:'#6B4E9B', lbCaisse:'Payé avec la caisse', lbTiers:'Fournisseur à régler', grp:'Fournisseur'},
+  enc:{titre:'Encaisser un client', coul:'#1F7A6B', lbCaisse:'Encaissé dans la caisse', lbTiers:'Client', grp:'Client'},
   tra:{titre:'Transfert entre caisses', coul:'var(--bleu)', lbCaisse:'De la caisse'},
   aut:{titre:'Autre écriture', coul:'var(--vert)'}
 };
@@ -445,32 +566,86 @@ function options(sel, comptes){
     return '<optgroup label="'+esc(k)+'">'+g[k].map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('')+'</optgroup>';
   }).join('');
 }
-function ouvrirForm(type){
+function $(id){ return document.getElementById(id); }
+function nombre(id){ var v=$(id).value.replace(/\s/g,'').replace(',','.'); return v==='' ? NaN : Number(v); }
+function lireMontant(){ return nombre('f-montant'); }
+function tiersDe(grp){
+  return D.tiers.filter(function(c){ return grp==='Client' ? c.groupe==='Client' : c.groupe!=='Client'; })
+    .map(function(c){ return c.nom; }).sort(function(a,b){ return a.localeCompare(b); });
+}
+function soldeTiersTxt(nom){
+  var s=(D.soldes||{})[nom]||0;
+  if(Math.abs(s)<0.005) return 'Solde actuel : 0 (rien en cours)';
+  return s<0 ? 'Vous lui devez actuellement '+mad(-s) : 'Il vous doit actuellement '+mad(s)+' (avance ou facture client)';
+}
+
+function ouvrirForm(type, edit){
   if(!D){ ouvrirReglages(); return; }
+  var EDIT=edit||null;
   var caisses=D.caisses.map(function(c){return c.nom;});
   var dern=lire(CLE_DERN,'');
-  F={type:type, caisse: caisses.indexOf(dern)>=0 ? dern : (caisses.filter(function(c){return /caisse/i.test(c);})[0]||caisses[0]||''), vers:''};
+  F={type:type, caisse: caisses.indexOf(dern)>=0 ? dern : (caisses.filter(function(c){return /caisse/i.test(c);})[0]||caisses[0]||''), vers:'', payeTouche:false};
   if(type==='tra') F.vers=caisses.filter(function(c){return c!==F.caisse;})[0]||'';
   F.activite = type==='tra' ? (D.activites.indexOf('Général')>=0?'Général':activiteDe(F.vers)) : activiteDe(F.caisse);
   var c=CONF[type];
-  document.getElementById('formTitre').textContent=c.titre;
-  document.getElementById('formBarre').style.background=c.coul;
-  document.getElementById('btnValider').style.background=c.coul;
-  document.getElementById('bloc-caisse').style.display=type==='aut'?'none':'';
-  document.getElementById('bloc-vers').style.display=type==='tra'?'':'none';
-  document.getElementById('bloc-rub').style.display=(type==='dep'||type==='rec')?'':'none';
-  document.getElementById('bloc-libre').style.display=type==='aut'?'':'none';
-  if(c.lbCaisse) document.getElementById('lb-caisse').textContent=c.lbCaisse;
-  if(c.lbRub) document.getElementById('lb-rub').textContent=c.lbRub;
-  if(type==='dep') options(document.getElementById('f-rub'), D.charges);
-  if(type==='rec') options(document.getElementById('f-rub'), D.produits);
-  if(type==='aut'){ options(document.getElementById('f-deb'), D.comptes); options(document.getElementById('f-cre'), D.comptes); }
-  ['f-montant','f-lib','f-piece'].forEach(function(id){ document.getElementById(id).value=''; });
-  document.getElementById('f-date').value=aujourdhui();
-  document.getElementById('btnValider').disabled=false;
-  majChoix();
-  document.getElementById('form').className='ecran on';
-  setTimeout(function(){ document.getElementById('f-montant').focus(); },150);
+  $('formTitre').textContent=c.titre;
+  $('formBarre').style.background=c.coul;
+  $('btnValider').style.background=c.coul;
+  $('bloc-tiers').style.display = c.lbTiers ? '' : 'none';
+  $('bloc-rub').style.display = (type==='dep'||type==='rec') ? '' : 'none';
+  $('bloc-vers').style.display = type==='tra' ? '' : 'none';
+  $('bloc-libre').style.display = type==='aut' ? '' : 'none';
+  if(c.lbCaisse) $('lb-caisse').textContent=c.lbCaisse;
+  if(c.lbRub) $('lb-rub').textContent=c.lbRub;
+  if(c.lbPaye) $('lb-paye').textContent=c.lbPaye;
+  if(type==='dep') options($('f-rub'), D.charges);
+  if(type==='rec') options($('f-rub'), D.produits);
+  if(type==='aut'){ options($('f-deb'), D.comptes); options($('f-cre'), D.comptes); }
+  ['f-montant','f-lib','f-piece','f-paye'].forEach(function(id){ $(id).value=''; });
+  $('f-date').value=aujourdhui();
+  $('btnValider').disabled=false;
+  if(c.lbTiers) remplirTiers('');
+  F.edit=EDIT;
+  $('btnValider').textContent = EDIT ? 'Enregistrer la modification' : 'Enregistrer';
+  if(EDIT){
+    $('formTitre').textContent='Modifier l\'écriture';
+    $('f-montant').value=String(EDIT.montant).replace('.',',');
+    $('f-deb').value=EDIT.debit; $('f-cre').value=EDIT.credit;
+    $('f-date').value=EDIT.date||aujourdhui();
+    $('f-piece').value=EDIT.piece||''; $('f-lib').value=EDIT.libelle||'';
+    F.activite=EDIT.activite||F.activite;
+    if(D.activites.indexOf(F.activite)<0 && F.activite) D.activites=D.activites.concat([F.activite]);
+  }
+  majChoix(); majVisibilite();
+  $('form').className='ecran on';
+  setTimeout(function(){ $('f-montant').focus(); },150);
+}
+function remplirTiers(val){
+  var c=CONF[F.type], grp=c.grp, sel=$('f-tiers');
+  var vide = F.type==='dep' ? '— Sans fournisseur (petite dépense payée comptant) —' : F.type==='rec' ? '— Sans client (vente payée comptant) —' : '— choisir —';
+  sel.innerHTML='<option value="">'+vide+'</option>' + tiersDe(grp).map(function(n){ return '<option value="'+esc(n)+'"'+(n===val?' selected':'')+'>'+esc(n)+'</option>'; }).join('') +
+    '<option value="+">＋ Nouveau '+(grp==='Client'?'client':'fournisseur')+'…</option>';
+  $('lb-tiers').textContent=c.lbTiers;
+}
+function tiersChoisi(){ var v=$('f-tiers').value; return v==='+' ? '' : v; }
+function payeMontant(){
+  var m=lireMontant(), p=nombre('f-paye');
+  if(!F.payeTouche) return isNaN(m)?0:m;
+  return isNaN(p)?0:p;
+}
+function majVisibilite(){
+  var t=F.type, tiers=CONF[t].lbTiers ? tiersChoisi() : '';
+  var avecPaye = (t==='dep'||t==='rec') && !!tiers;
+  $('bloc-paye').style.display = avecPaye ? '' : 'none';
+  if(avecPaye && !F.payeTouche){ var m=lireMontant(); $('f-paye').value = isNaN(m)?'':String(m).replace('.',','); }
+  var caisseUtile = t!=='aut' && (!avecPaye || payeMontant()>0);
+  $('bloc-caisse').style.display = caisseUtile ? '' : 'none';
+  var note='';
+  if(tiers) note = soldeTiersTxt(tiers);
+  if(t==='dep' && !tiers) note='Pour suivre ce que vous devez, choisissez le fournisseur.';
+  if(t==='rec' && !tiers) note='Pour suivre ce qu\'on vous doit, choisissez le client.';
+  $('note-tiers').textContent=note;
+  resume();
 }
 function majChoix(){
   var caisses=D.caisses.map(function(c){return c.nom;});
@@ -484,42 +659,154 @@ function majChoix(){
   chips('c-act', D.activites, F.activite, function(v){ F.activite=v; majChoix(); });
   resume();
 }
-function lireMontant(){ return Number(document.getElementById('f-montant').value.replace(/\s/g,'').replace(',','.')); }
-function comptesEcriture(){
-  var rub=document.getElementById('f-rub').value;
-  if(F.type==='dep') return {debit:rub, credit:F.caisse};
-  if(F.type==='rec') return {debit:F.caisse, credit:rub};
-  if(F.type==='tra') return {debit:F.vers, credit:F.caisse};
-  return {debit:document.getElementById('f-deb').value, credit:document.getElementById('f-cre').value};
+/* Les écritures que va créer le formulaire */
+function ecritures(){
+  var t=F.type, m=lireMontant(), rub=$('f-rub').value, tiers=tiersChoisi(), p=payeMontant(), out=[], lettrer='';
+  if(isNaN(m)) m=0;
+  if(t==='dep'){
+    if(tiers){ out.push({debit:rub, credit:tiers, montant:m, role:'facture'}); if(p>0) out.push({debit:tiers, credit:F.caisse, montant:p, role:'reglement'}); if(Math.abs(p-m)<0.005 && m>0) lettrer=tiers; }
+    else out.push({debit:rub, credit:F.caisse, montant:m, role:'comptant'});
+  } else if(t==='rec'){
+    if(tiers){ out.push({debit:tiers, credit:rub, montant:m, role:'facture'}); if(p>0) out.push({debit:F.caisse, credit:tiers, montant:p, role:'reglement'}); if(Math.abs(p-m)<0.005 && m>0) lettrer=tiers; }
+    else out.push({debit:F.caisse, credit:rub, montant:m, role:'comptant'});
+  } else if(t==='reg') out.push({debit:tiers, credit:F.caisse, montant:m, role:'reglement'});
+  else if(t==='enc') out.push({debit:F.caisse, credit:tiers, montant:m, role:'reglement'});
+  else if(t==='tra') out.push({debit:F.vers, credit:F.caisse, montant:m, role:'transfert'});
+  else out.push({debit:$('f-deb').value, credit:$('f-cre').value, montant:m, role:'libre'});
+  return {lignes:out, lettrer:lettrer};
 }
 function resume(){
-  var e=comptesEcriture(), m=lireMontant();
-  document.getElementById('resume').innerHTML='Écriture : <b>Débit</b> '+esc(e.debit||'…')+' &nbsp;/&nbsp; <b>Crédit</b> '+esc(e.credit||'…')+
-    (m>0?' &nbsp;·&nbsp; <b>'+mad(m)+'</b>':'')+(F.activite?' &nbsp;·&nbsp; '+esc(F.activite):'');
+  var r=ecritures();
+  $('resume').innerHTML = r.lignes.map(function(e,i){
+    return (r.lignes.length>1 ? '<b>'+(i+1)+'.</b> ' : 'Écriture : ')+'<b>Débit</b> '+esc(e.debit||'…')+' &nbsp;/&nbsp; <b>Crédit</b> '+esc(e.credit||'…')+(e.montant>0?' &nbsp;·&nbsp; <b>'+mad(e.montant)+'</b>':'');
+  }).join('<br>') + (F.activite?'<br>Activité : '+esc(F.activite):'') + (r.lettrer?'<br>✓ Facture et règlement seront lettrés ensemble.':'');
 }
 ['f-montant','f-rub','f-deb','f-cre'].forEach(function(id){
-  var el=document.getElementById(id); el.addEventListener('input',resume); el.addEventListener('change',resume);
+  var el=$(id); el.addEventListener('input',majVisibilite); el.addEventListener('change',majVisibilite);
 });
+$('f-paye').addEventListener('input', function(){ F.payeTouche=true; majVisibilite(); });
+document.querySelector('#bloc-paye .choix').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-p]'); if(!b) return;
+  var m=lireMontant(); if(isNaN(m)) m=0;
+  F.payeTouche=true;
+  $('f-paye').value = b.dataset.p==='tout' ? String(m).replace('.',',') : b.dataset.p==='moitie' ? String(Math.round(m*50)/100).replace('.',',') : '0';
+  majVisibilite();
+});
+$('f-tiers').addEventListener('change', function(){
+  if(this.value==='+'){
+    var grp=CONF[F.type].grp;
+    var nom=(prompt('Nom du nouveau '+(grp==='Client'?'client':'fournisseur')+' :')||'').trim();
+    if(!nom){ this.value=''; majVisibilite(); return; }
+    if(D.comptes.some(function(c){return c.nom.toLowerCase()===nom.toLowerCase();})){ toast('Ce nom existe déjà dans vos comptes', true); this.value=''; majVisibilite(); return; }
+    FILE.push({id:nouvelId(), type:'compte', nom:nom, groupe:grp}); ecrire(CLE_FILE, FILE);
+    var f=F; calculer(); F=f; remplirTiers(nom); majVisibilite(); synchroniser(false);
+    return;
+  }
+  majVisibilite();
+});
+
 function valider(){
-  var e=comptesEcriture(), m=lireMontant();
+  var r=ecritures(), m=lireMontant(), t=F.type, tiers=CONF[t].lbTiers ? tiersChoisi() : '';
   if(!(m>0)) return toast('Saisissez un montant', true);
-  if(!e.debit||!e.credit) return toast(F.type==='aut'?'Choisissez les deux comptes':'Choisissez la rubrique', true);
-  if(e.debit===e.credit) return toast('Les deux comptes doivent être différents', true);
+  if((t==='dep'||t==='rec') && !$('f-rub').value) return toast('Choisissez la catégorie', true);
+  if((t==='reg'||t==='enc') && !tiers) return toast('Choisissez le '+(t==='reg'?'fournisseur':'client'), true);
+  if(t==='aut' && (!r.lignes[0].debit || !r.lignes[0].credit)) return toast('Choisissez les deux comptes', true);
+  for(var i=0;i<r.lignes.length;i++){ if(r.lignes[i].debit===r.lignes[i].credit) return toast('Débit et crédit doivent être différents', true); }
   if(!F.activite) return toast('Choisissez une activité', true);
-  var lib=document.getElementById('f-lib').value.trim();
-  if(!lib) lib = F.type==='tra' ? 'Transfert '+F.caisse+' → '+F.vers : F.type==='dep' ? e.debit : F.type==='rec' ? e.credit : '';
-  var op={id:nouvelId(), type:'ajout', e:{
-    date:document.getElementById('f-date').value||aujourdhui(), piece:document.getElementById('f-piece').value.trim(),
-    libelle:lib, debit:e.debit, credit:e.credit, montant:Math.round(m*100)/100, activite:F.activite,
-    horodatage:new Date().toISOString()
-  }};
-  document.getElementById('btnValider').disabled=true;
+  var p=payeMontant();
+  if((t==='dep'||t==='rec') && tiers && p>m+0.005 && !confirm('Le montant payé ('+mad(p)+') dépasse la facture ('+mad(m)+'). Le surplus sera une avance. Continuer ?')) return;
+  var lib=$('f-lib').value.trim(), date=$('f-date').value||aujourdhui(), piece=$('f-piece').value.trim(), h=new Date().toISOString();
+  var lignes=r.lignes.map(function(e){
+    var l=lib;
+    if(e.role==='facture') l = lib || (t==='dep' ? e.debit : e.credit);
+    else if(e.role==='reglement') l = (t==='dep'||t==='reg' ? 'Règlement ' : 'Encaissement ')+tiers+(lib?' · '+lib:'');
+    else if(e.role==='comptant') l = lib || (t==='dep' ? e.debit : e.credit);
+    else if(e.role==='transfert') l = lib || 'Transfert '+F.caisse+' → '+F.vers;
+    return {date:date, piece:piece, libelle:l, debit:e.debit, credit:e.credit, montant:Math.round(e.montant*100)/100, activite:F.activite, horodatage:h};
+  });
+  if(F.edit) return enregistrerModif(F.edit, {e:lignes[0]});
+  var op = lignes.length===1 ? {id:nouvelId(), type:'ajout', e:lignes[0]} : {id:nouvelId(), type:'groupe', ecritures:lignes, lettrer:r.lettrer};
+  $('btnValider').disabled=true;
   FILE.push(op);
-  if(!ecrire(CLE_FILE, FILE)){ FILE.pop(); document.getElementById('btnValider').disabled=false; return; }
-  if(F.type!=='aut') ecrire(CLE_DERN, F.caisse);
+  if(!ecrire(CLE_FILE, FILE)){ FILE.pop(); $('btnValider').disabled=false; return; }
+  if(t!=='aut') ecrire(CLE_DERN, F.caisse);
   calculer(); dessiner(); fermer('form');
   toast(navigator.onLine===false ? 'Enregistré dans le téléphone ✓' : 'Enregistré ✓');
   synchroniser(false);
+}
+
+/* Modification d'une écriture */
+function enregistrerModif(o, nouvelle){
+  var ne = nouvelle.e;
+  if(o.id){
+    var ancienne = FILE.filter(function(x){return x.id===o.id;})[0];
+    if(ancienne && ancienne.type==='groupe'){ toast('Pas encore envoyée : annulez cette saisie puis ressaisissez-la.', true); return; }
+    if(ancienne && !ancienne.tente && !ancienne.erreur){
+      ancienne.e = Object.assign(ancienne.e, ne, {horodatage:ancienne.e.horodatage});
+    } else {
+      FILE = FILE.filter(function(x){return x.id!==o.id;});
+      if(ancienne && ancienne.tente && !ancienne.erreur)
+        FILE.push({id:nouvelId(), type:'annul', cible:o.id, controle:{debit:o.debit, credit:o.credit, montant:o.montant}});
+      FILE.push({id:nouvelId(), type:'ajout', e:ne});
+    }
+  } else {
+    if(o.opModif) FILE = FILE.filter(function(x){return x.id!==o.opModif;});
+    var enCoursModif = FILE.filter(function(x){return x.type==='modif' && x.ligne===o.ligne && !x.tente && !x.erreur;})[0];
+    var e2 = {date:ne.date, piece:ne.piece, libelle:ne.libelle, debit:ne.debit, credit:ne.credit, montant:ne.montant, activite:ne.activite};
+    if(enCoursModif) enCoursModif.e = e2;
+    else FILE.push({id:nouvelId(), type:'modif', ligne:o.ligne, controle:{debit:o.debit, credit:o.credit, montant:o.montant}, e:e2});
+  }
+  ecrire(CLE_FILE, FILE);
+  F.edit = null;
+  calculer(); dessiner(); fermer('form');
+  toast('Modification enregistrée ✓');
+  synchroniser(false);
+}
+
+/* Fournisseurs / clients créés depuis l'appli, pas encore envoyés */
+function comptesAvecAttente(){
+  var l = (CACHE.comptes||[]).slice();
+  FILE.forEach(function(op){ if(op.type==='compte' && !op.erreur && !l.some(function(c){return c.nom===op.nom;})) l.push({code:op.groupe==='Client'?'3421':'4411', nom:op.nom, type:'Tiers', groupe:op.groupe||'Fournisseur'}); });
+  return l;
+}
+
+/* =========================================================
+   Soldes : caisses, fournisseurs, clients, avances, catégories
+   ========================================================= */
+function dessinerSoldes(){
+  var z=$('v-soldes'); if(!D){ z.innerHTML=''; return; }
+  var S=D.soldes||{}, A=D.annee||{}, an=new Date().getFullYear();
+  function liste(titre, items, explication, total){
+    var h='<h2>'+titre+'</h2>';
+    if(!items.length) return h+'<div class="vide">Rien en cours.</div>';
+    h+='<div class="tab">'+items.map(function(x){
+      return '<div class="r'+(x.lien?' lien-l':'')+'" style="grid-template-columns:1fr auto"'+(x.lien?' data-lc="'+esc(x.nom)+'"':'')+'><span>'+esc(x.nom)+(x.lien?' ›':'')+'</span><span style="font-weight:700'+(x.rouge?';color:var(--rouge)':'')+'">'+mad(x.v)+'</span></div>';
+    }).join('')+(total!==undefined?'<div class="r" style="grid-template-columns:1fr auto;font-weight:700"><span>Total</span><span>'+mad(total)+'</span></div>':'')+'</div>';
+    if(explication) h+='<div class="note">'+explication+'</div>';
+    return h;
+  }
+  var caisses=D.caisses.map(function(c){return {nom:c.nom, v:c.solde, rouge:c.solde<0};});
+  var four=[], cli=[], av=[];
+  D.tiers.forEach(function(c){
+    var s=S[c.nom]||0; if(Math.abs(s)<0.005) return;
+    if(c.groupe==='Client') cli.push({nom:c.nom, v:s, lien:true});
+    else if(c.groupe==='Avance') av.push({nom:c.nom, v:s, lien:true});
+    else four.push({nom:c.nom, v:-s, rouge:s<0, lien:true});
+  });
+  four.sort(function(a,b){return b.v-a.v;}); cli.sort(function(a,b){return b.v-a.v;}); av.sort(function(a,b){return Math.abs(b.v)-Math.abs(a.v);});
+  var dep=D.charges.map(function(c){return {nom:c.nom, v:A[c.nom]||0};}).filter(function(x){return Math.abs(x.v)>0.005;}).sort(function(a,b){return b.v-a.v;});
+  var rec=D.produits.map(function(c){return {nom:c.nom, v:-(A[c.nom]||0)};}).filter(function(x){return Math.abs(x.v)>0.005;}).sort(function(a,b){return b.v-a.v;});
+  var som=function(l){return l.reduce(function(s,x){return s+x.v;},0);};
+  var h='';
+  h+=liste('Caisses', caisses, '', som(caisses));
+  h+=liste('Fournisseurs — vous devez', four, 'Montant négatif = avance versée au fournisseur. Touchez un nom pour le lettrage.', som(four));
+  h+=liste('Clients — on vous doit', cli, '', som(cli));
+  h+=liste('Avances et personnes', av, 'Positif : la personne vous doit. Négatif : vous lui devez.', som(av));
+  h+=liste('Dépenses '+an+' par catégorie', dep, '', som(dep));
+  h+=liste('Recettes '+an+' par catégorie', rec, '', som(rec));
+  h+='<div class="tab" style="margin-top:12px"><div class="r" style="grid-template-columns:1fr auto;font-weight:700;font-size:17px"><span>Résultat '+an+'</span><span style="color:'+(som(rec)-som(dep)<0?'var(--rouge)':'var(--vert2)')+'">'+mad(som(rec)-som(dep))+'</span></div></div>';
+  z.innerHTML=h;
+  z.querySelectorAll('[data-lc]').forEach(function(b){ b.onclick=function(){ LCOMPTE=b.dataset.lc; LSEL={}; LVOIR='ouvertes'; vue('lettrage'); }; });
 }
 function fermer(id){ document.getElementById(id).className='ecran'; }
 
