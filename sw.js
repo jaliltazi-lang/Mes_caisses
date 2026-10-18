@@ -1,6 +1,6 @@
 // Mes dépenses : garde l'appli dans le téléphone pour qu'elle s'ouvre sans réseau.
 // Changez le numéro de version à chaque mise à jour des fichiers.
-var VERSION = 'mes-depenses-v6';
+var VERSION = 'mes-depenses-v7';
 var FICHIERS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', function (e) {

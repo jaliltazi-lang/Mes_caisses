@@ -92,6 +92,18 @@
   .aide{font-size:14px;color:var(--gris);line-height:1.5}
   .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1D241F;color:#fff;padding:12px 18px;border-radius:24px;font-size:15px;z-index:40;display:none;max-width:90%;text-align:center}
   .toast.err{background:var(--rouge)}
+  .navper{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;background:#fff;border:1px solid var(--trait);border-radius:14px;padding:6px}
+  .navper span{font-weight:700;font-size:17px;text-transform:capitalize}
+  .navper button{border:0;background:var(--vertc);color:var(--vert);width:52px;height:44px;border-radius:10px;font-size:20px;font-weight:700}
+  .bal .r{font-size:13px;padding:8px 8px;gap:4px}
+  .bal .r span:not(:first-child){text-align:right;white-space:nowrap}
+  .imp-titre{display:none}
+  @media print{
+    .haut,nav,.nonimp,.toast,#v-soldes h2{display:none!important}
+    body{background:#fff} main{max-width:none;padding:0}
+    .imp-titre{display:block;font-size:18px;font-weight:700;margin:0 0 8px}
+    .bal{border:1px solid #999} .bal .r{font-size:11px;padding:4px 6px;break-inside:avoid}
+  }
   .chip.plus{border-style:dashed;color:var(--vert);font-weight:600}
   .glf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .glf label{font-size:12px;color:var(--gris);font-weight:600;display:block;margin:0 2px 4px}
@@ -154,7 +166,7 @@
   <button id="n-accueil" class="on" onclick="vue('accueil')"><span class="i">⌂</span>Accueil</button>
   <button id="n-apayer" onclick="vue('apayer')"><span class="i">⌛</span>À payer</button>
   <button id="n-histo" onclick="vue('histo')"><span class="i">☰</span>Grand livre</button>
-  <button id="n-soldes" onclick="vue('soldes')"><span class="i">Σ</span>Soldes</button>
+  <button id="n-soldes" onclick="vue('soldes')"><span class="i">Σ</span>Balance</button>
   <button id="n-lettrage" onclick="vue('lettrage')"><span class="i">✓</span>Lettrage</button>
 </nav>
 
@@ -425,16 +437,28 @@ function dessiner(){
   if(document.getElementById('v-apayer').style.display!=='none') dessinerApayer();
 }
 document.getElementById('caisses').addEventListener('click', function(ev){
-  var b=ev.target.closest('[data-caisse]'); if(!b) return; GLF={compte:b.dataset.caisse, domaine:'', centre:'', tiers:'', du:'', au:'', tri:'date-'}; vue('histo');
+  var b=ev.target.closest('[data-caisse]'); if(!b) return; allerGL({compte:b.dataset.caisse});
 });
 
-function vue(v){
+/* Navigation : chaque onglet est mémorisé, le bouton retour de la tablette revient à l'écran précédent */
+var VUE='accueil', GLDEPUIS='', VUES_NOMS={accueil:'Accueil', apayer:'À payer', histo:'Grand livre', soldes:'Balance', lettrage:'Lettrage'};
+try{ history.replaceState({v:'accueil'}, ''); }catch(e){}
+window.addEventListener('popstate', function(e){
+  var ouvert=document.querySelector('.ecran.on');
+  if(ouvert && ouvert.id!=='reglages'){ ouvert.className='ecran'; try{ history.pushState({v:VUE}, ''); }catch(x){} return; }
+  vue((e.state && e.state.v) || 'accueil', true);
+});
+function allerGL(filtres){ GLF=Object.assign({compte:'', domaine:'', centre:'', tiers:'', du:'', au:'', tri:'date-'}, filtres); GLDEPUIS=VUE; vue('histo', false, true); }
+function vue(v, pop, garder){
+  if(v==='histo' && !garder && !pop) GLDEPUIS='';
+  if(!pop && v!==VUE){ try{ history.pushState({v:v}, ''); }catch(e){} }
+  VUE=v;
   ['accueil','apayer','histo','soldes','lettrage'].forEach(function(x){
     document.getElementById('v-'+x).style.display = v===x?'':'none';
     document.getElementById('n-'+x).className = v===x?'on':'';
   });
   if(v==='lettrage') dessinerLettrage();
-  if(v==='soldes') dessinerSoldes();
+  if(v==='soldes'){ dessinerSoldes(); chargerJournal(); }
   if(v==='apayer') dessinerApayer();
   if(v==='histo'){ dessinerHisto(); chargerJournal(); }
   window.scrollTo(0,0);
@@ -528,15 +552,19 @@ function sens(o){
 var LISTE=[], GL=lire('mc_journal', null), GLF={compte:'', domaine:'', centre:'', tiers:'', du:'', au:'', tri:'date-'}, GLMAX=200, glCharge=false, glScriptAncien=false;
 function chargerJournal(){
   if(!CFG || glCharge || navigator.onLine===false) return;
-  glCharge=true; dessinerHisto();
+  glCharge=true; rafraichirGL();
   appelScript({action:'journal'}).then(function(rep){
     glCharge=false;
-    if(!rep || !rep.ok){ glScriptAncien = /Action inconnue/.test(rep&&rep.erreur||''); dessinerHisto(); return; }
+    if(!rep || !rep.ok){ glScriptAncien = /Action inconnue/.test(rep&&rep.erreur||''); rafraichirGL(); return; }
     glScriptAncien=false;
     GL={recuLe:new Date().toISOString(), lignes:rep.journal};
     try{ localStorage.setItem('mc_journal', JSON.stringify(GL)); }catch(e){}
-    dessinerHisto();
-  }).catch(function(){ glCharge=false; dessinerHisto(); });
+    rafraichirGL();
+  }).catch(function(){ glCharge=false; rafraichirGL(); });
+}
+function rafraichirGL(){
+  dessinerHisto();
+  if($('v-soldes').style.display!=='none') dessinerSoldes();
 }
 /* Toutes les lignes : grand livre reçu du Sheet + saisies en attente */
 function glLignes(){
@@ -579,7 +607,9 @@ function dessinerHisto(){
       .map(function(t){ return '<option value="'+t[0]+'"'+(GLF.tri===t[0]?' selected':'')+'>'+t[1]+'</option>'; }).join('')+'</select></div>'+
     '</div>'+
     ((GLF.compte||GLF.domaine||GLF.centre||GLF.tiers||GLF.du||GLF.au)?'<button class="plus-btn" id="glRaz">Effacer les filtres</button>':'');
+  if(GLDEPUIS && GLDEPUIS!=='histo') fh='<button class="plus-btn" id="glRetour" style="margin:0 0 10px">← Retour : '+esc(VUES_NOMS[GLDEPUIS]||GLDEPUIS)+'</button>'+fh;
   $('glFiltres').innerHTML=fh;
+  if($('glRetour')) $('glRetour').onclick=function(){ history.back(); };
   $('glFiltres').querySelectorAll('[data-glf]').forEach(function(el){ el.onchange=function(){ GLF[el.dataset.glf]=el.value; GLMAX=200; dessinerHisto(); }; });
   if($('glRaz')) $('glRaz').onclick=function(){ GLF={compte:'', domaine:'', centre:'', tiers:'', du:'', au:'', tri:GLF.tri}; dessinerHisto(); };
 
@@ -1119,8 +1149,99 @@ function reglerDette(x){
 /* =========================================================
    Soldes : caisses, fournisseurs, clients, avances, catégories
    ========================================================= */
+var BMODE='balance', BF={periode:'tout', du:'', au:'', domaine:'', centre:'', tiers:'', vue:'detail', an:new Date().getFullYear(), mois:moisCourant()};
 function dessinerSoldes(){
   var z=$('v-soldes'); if(!D){ z.innerHTML=''; return; }
+  var bascule='<div class="quand nonimp" style="margin-top:16px"><button data-bm="balance" class="'+(BMODE==='balance'?'on':'')+'">Balance générale</button><button data-bm="resume" class="'+(BMODE==='resume'?'on':'')+'">Résumé des soldes</button></div>';
+  if(BMODE==='balance'){ dessinerBalance(z, bascule); return; }
+  dessinerResume(z, bascule);
+}
+function brancherBascule(z){ z.querySelectorAll('[data-bm]').forEach(function(b){ b.onclick=function(){ BMODE=b.dataset.bm; dessinerSoldes(); }; }); }
+
+/* =========================================================
+   Balance générale : pour chaque compte, total débit, total crédit,
+   solde débiteur ou créditeur, sur la période et le domaine choisis.
+   ========================================================= */
+function dessinerBalance(z, bascule){
+  var an=new Date().getFullYear(), mc=moisCourant();
+  var du=BF.du, au=BF.au;
+  if(BF.periode==='annee'){ du=BF.an+'-01-01'; au=BF.an+'-12-31'; }
+  else if(BF.periode==='mois'){ du=BF.mois+'-01'; au=BF.mois+'-31'; }
+  else if(BF.periode==='tout'){ du=''; au=''; }
+  var L=glLignes().filter(function(o){
+    if(o.erreur) return false;
+    if(du && String(o.date)<du) return false;
+    if(au && String(o.date)>au) return false;
+    if(BF.domaine && o.activite!==BF.domaine) return false;
+    if(BF.centre && o.debit!==BF.centre && o.credit!==BF.centre) return false;
+    if(BF.tiers && o.debit!==BF.tiers && o.credit!==BF.tiers) return false;
+    return true;
+  });
+  var mv={};
+  L.forEach(function(o){ var m=Number(o.montant)||0;
+    (mv[o.debit]=mv[o.debit]||{d:0,c:0}).d+=m; (mv[o.credit]=mv[o.credit]||{d:0,c:0}).c+=m; });
+  var typeDe={}, codeDe={}; D.comptes.forEach(function(c){ typeDe[c.nom]=c.type; codeDe[c.nom]=c.code||''; });
+  var ordre=[['Trésorerie','Caisses et banques'],['Tiers','Tiers (fournisseurs, clients, avances)'],['Charge','Dépenses (centres de dépense)'],['Produit','Recettes'],['','Autres comptes']];
+  var groupes={}; ordre.forEach(function(g){ groupes[g[0]]=[]; });
+  Object.keys(mv).forEach(function(n){ var t=typeDe[n]; if(!groupes[t]) t=''; groupes[t].push(n); });
+  var T={d:0,c:0,sd:0,sc:0};
+  var cols='grid-template-columns:1.6fr 1fr 1fr 1fr 1fr';
+  var ligne=function(nom, x, gras, lien){
+    var s=x.d-x.c, sd=s>0.005?s:0, sc=s<-0.005?-s:0;
+    return '<div class="r'+(lien?' lien-l':'')+'" style="'+cols+(gras?';font-weight:700;background:#F7F9F7':'')+'"'+(lien?' data-bc="'+esc(nom)+'"':'')+'><span style="word-break:break-word">'+esc(nom)+'</span><span>'+fmtc(x.d)+'</span><span>'+fmtc(x.c)+'</span><span>'+(sd?fmtc(sd):'')+'</span><span>'+(sc?fmtc(sc):'')+'</span></div>';
+  };
+  var corps='';
+  ordre.forEach(function(g){
+    var noms=groupes[g[0]]; if(!noms.length) return;
+    noms.sort(function(a,b){ var x=codeDe[a]||'', y=codeDe[b]||''; return x!==y ? x.localeCompare(y,undefined,{numeric:true}) : a.localeCompare(b); });
+    var st={d:0,c:0};
+    if(BF.vue==='detail') corps+='<div class="r" style="grid-template-columns:1fr;color:var(--vert);font-weight:700">'+g[1]+'</div>';
+    noms.forEach(function(n){ st.d+=mv[n].d; st.c+=mv[n].c; if(BF.vue==='detail') corps+=ligne(n, mv[n], false, true); });
+    corps+=ligne(BF.vue==='detail'?'Total '+g[1].split(' (')[0].toLowerCase():g[1], st, true, false);
+    T.d+=st.d; T.c+=st.c;
+  });
+  var sTot={sd:0,sc:0}; Object.keys(mv).forEach(function(n){ var s=mv[n].d-mv[n].c; if(s>0) sTot.sd+=s; else sTot.sc-=s; });
+  var equilibre=Math.abs(T.d-T.c)<0.01 && Math.abs(sTot.sd-sTot.sc)<0.01;
+
+  var MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var nomMois=function(m){ return MOIS[Number(m.slice(5))-1]+' '+m.slice(0,4); };
+  var titrePer = BF.periode==='tout' ? 'depuis le début' : BF.periode==='annee' ? 'année '+BF.an : BF.periode==='mois' ? nomMois(BF.mois) :
+    (du?'du '+dateFr(du):'')+(au?' au '+dateFr(au):'');
+  var h=bascule+'<h2>Balance générale</h2>';
+  h+='<div class="nonimp"><div class="filtres">'+[['tout','Depuis le début'],['annee','Par année'],['mois','Par mois'],['choix','Période…']].map(function(x){
+      return '<button class="chip'+(BF.periode===x[0]?' on':'')+'" data-bp="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
+  if(BF.periode==='annee'||BF.periode==='mois')
+    h+='<div class="navper"><button data-nav="-1">◀</button><span>'+(BF.periode==='annee'?'Année '+BF.an:nomMois(BF.mois))+'</span><button data-nav="1">▶</button></div>';
+  h+='<div class="glf" style="margin-top:8px">'+(BF.periode==='choix'?'<div><label>Du</label><input type="date" data-bf="du" value="'+esc(BF.du)+'"></div><div><label>Au</label><input type="date" data-bf="au" value="'+esc(BF.au)+'"></div>':'')+
+    '<div><label>Domaine</label><select data-bf="domaine"><option value="">Tous</option>'+D.activites.map(function(a){ return '<option'+(BF.domaine===a?' selected':'')+'>'+esc(a)+'</option>'; }).join('')+'</select></div>'+
+    '<div><label>Centre de dépense (rubrique)</label><select data-bf="centre"><option value="">Tous</option>'+D.charges.concat(D.produits).map(function(c){ return '<option'+(BF.centre===c.nom?' selected':'')+'>'+esc(c.nom)+'</option>'; }).join('')+'</select></div>'+
+    '<div><label>Tiers</label><select data-bf="tiers"><option value="">Tous</option>'+D.tiers.slice().sort(function(a,b){return a.nom.localeCompare(b.nom);}).map(function(c){ return '<option'+(BF.tiers===c.nom?' selected':'')+'>'+esc(c.nom)+'</option>'; }).join('')+'</select></div>'+
+    '<div><label>Affichage</label><select data-bf="vue"><option value="detail"'+(BF.vue==='detail'?' selected':'')+'>Tous les comptes</option><option value="synthese"'+(BF.vue==='synthese'?' selected':'')+'>Totaux par classe</option></select></div></div></div>';
+  var ft=(BF.domaine?' · Domaine : '+BF.domaine:'')+(BF.centre?' · Centre : '+BF.centre:'')+(BF.tiers?' · Tiers : '+BF.tiers:'');
+  h+='<div class="imp-titre">Balance générale — '+esc(titrePer)+esc(ft)+'</div>';
+  h+='<p class="note">Période : <b>'+esc(titrePer)+'</b>'+esc(ft)+' · '+L.length+' écriture'+(L.length>1?'s':'')+(glCharge?' · chargement…':GL?'':' · grand livre complet non chargé (hors ligne) : dernières opérations seulement')+'</p>';
+  h+='<div class="tab bal" style="margin-top:8px"><div class="r" style="'+cols+'"><span>Compte</span><span>Débit</span><span>Crédit</span><span>Solde D</span><span>Solde C</span></div>'+
+     (corps||'<div class="vide">Aucune écriture sur cette période.</div>')+
+     '<div class="r" style="'+cols+';font-weight:800;border-top:2px solid var(--vert)"><span>TOTAL</span><span>'+fmtc(T.d)+'</span><span>'+fmtc(T.c)+'</span><span>'+fmtc(sTot.sd)+'</span><span>'+fmtc(sTot.sc)+'</span></div></div>';
+  h+='<p class="note" style="color:'+(equilibre?'var(--vert2)':'var(--rouge)')+';font-weight:700">'+(equilibre?'Équilibrée ✓ (total débit = total crédit)':'⚠ Déséquilibre de '+mad(T.d-T.c))+'</p>';
+  h+='<p class="note nonimp">Solde D (débiteur) : argent en caisse, dépense, somme qu\'on vous doit. Solde C (créditeur) : recette, somme que vous devez. Touchez un compte pour voir son grand livre.</p>';
+  h+='<button class="plus-btn nonimp" id="balImp">🖨 Imprimer / enregistrer en PDF</button>';
+  z.innerHTML=h; brancherBascule(z);
+  z.querySelectorAll('[data-bp]').forEach(function(b){ b.onclick=function(){ BF.periode=b.dataset.bp; dessinerSoldes(); }; });
+  z.querySelectorAll('[data-nav]').forEach(function(b){ b.onclick=function(){
+    var d=Number(b.dataset.nav);
+    if(BF.periode==='annee') BF.an+=d;
+    else { var y=Number(BF.mois.slice(0,4)), m=Number(BF.mois.slice(5))-1+d; y+=Math.floor(m/12); m=((m%12)+12)%12; BF.mois=y+'-'+deux(m+1); }
+    dessinerSoldes(); }; });
+  z.querySelectorAll('[data-bf]').forEach(function(el){ el.onchange=function(){ BF[el.dataset.bf]=el.value; dessinerSoldes(); }; });
+  z.querySelectorAll('[data-bc]').forEach(function(b){ b.onclick=function(){
+    allerGL({compte:b.dataset.bc, domaine:BF.domaine, centre:BF.centre, tiers:BF.tiers, du:du, au:au, tri:'date+'}); }; });
+  if(BF.domaine||BF.centre||BF.tiers){ z.querySelector('.glf').insertAdjacentHTML('afterend','<button class="plus-btn nonimp" id="balRaz">Effacer les filtres</button>');
+    $('balRaz').onclick=function(){ BF.domaine=''; BF.centre=''; BF.tiers=''; dessinerSoldes(); }; }
+  $('balImp').onclick=function(){ window.print(); };
+}
+
+function dessinerResume(z, bascule){
   var S=D.soldes||{}, A=D.annee||{}, an=new Date().getFullYear();
   function liste(titre, items, explication, total){
     var h='<h2>'+titre+'</h2>';
@@ -1143,15 +1264,15 @@ function dessinerSoldes(){
   var dep=D.charges.map(function(c){return {nom:c.nom, v:A[c.nom]||0};}).filter(function(x){return Math.abs(x.v)>0.005;}).sort(function(a,b){return b.v-a.v;});
   var rec=D.produits.map(function(c){return {nom:c.nom, v:-(A[c.nom]||0)};}).filter(function(x){return Math.abs(x.v)>0.005;}).sort(function(a,b){return b.v-a.v;});
   var som=function(l){return l.reduce(function(s,x){return s+x.v;},0);};
-  var h='';
-  h+=liste('Caisses', caisses, '', som(caisses));
+  var h=bascule;
+  h+=liste('Caisses et banques', caisses, '', som(caisses));
   h+=liste('Fournisseurs — vous devez', four, 'Montant négatif = avance versée au fournisseur. Touchez un nom pour le lettrage.', som(four));
   h+=liste('Clients — on vous doit', cli, '', som(cli));
   h+=liste('Avances et personnes', av, 'Positif : la personne vous doit. Négatif : vous lui devez.', som(av));
   h+=liste('Dépenses '+an+' par centre de dépense', dep, '', som(dep));
   h+=liste('Recettes '+an+' par catégorie', rec, '', som(rec));
   h+='<div class="tab" style="margin-top:12px"><div class="r" style="grid-template-columns:1fr auto;font-weight:700;font-size:17px"><span>Résultat '+an+'</span><span style="color:'+(som(rec)-som(dep)<0?'var(--rouge)':'var(--vert2)')+'">'+mad(som(rec)-som(dep))+'</span></div></div>';
-  z.innerHTML=h;
+  z.innerHTML=h; brancherBascule(z);
   z.querySelectorAll('[data-lc]').forEach(function(b){ b.onclick=function(){ LCOMPTE=b.dataset.lc; LSEL={}; LVOIR='ouvertes'; vue('lettrage'); }; });
 }
 function fermer(id){ document.getElementById(id).className='ecran'; }
