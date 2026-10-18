@@ -36,6 +36,11 @@
   .act .ic{font-size:26px;line-height:1}
   .act.reg{background:#6B4E9B} .act.enc{background:#1F7A6B} .act.aut{background:#fff;color:var(--texte);border:1px solid var(--trait);box-shadow:none} .act.dep{background:var(--rouge)} .act.rec{background:var(--vert2)} .act.tra{background:var(--bleu)}
   .lien-l{cursor:pointer}
+  .actions.grand{grid-template-columns:1fr 1fr} .actions.grand .act{padding:20px 4px;font-size:18px} .actions.grand .ic{font-size:32px}
+  .actions.petit{grid-template-columns:repeat(4,1fr);margin-top:8px} .actions.petit .act{padding:11px 2px;font-size:13px;flex-direction:row;justify-content:center}
+  .quand{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .quand button{border:2px solid var(--trait);background:#fff;border-radius:14px;padding:14px 6px;font-size:15px;font-weight:700;color:var(--texte)}
+  .quand button.on{border-color:var(--vert);background:var(--vertc);color:var(--vert)}
   .autre{display:block;margin:10px auto 0;background:none;border:0;color:var(--gris);font-size:14px;text-decoration:underline}
   .caisses{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .caisse{background:var(--carte);border-radius:14px;padding:12px;border:1px solid var(--trait);text-align:left;color:var(--texte)}
@@ -110,19 +115,21 @@
 
 <main>
   <section id="v-accueil">
-    <div class="actions">
+    <div class="actions grand">
       <button class="act dep" onclick="ouvrirForm('dep')"><span class="ic">−</span>Dépense</button>
-      <button class="act reg" onclick="ouvrirForm('reg')"><span class="ic">✓</span>Régler</button>
-      <button class="act tra" onclick="ouvrirForm('tra')"><span class="ic">⇄</span>Transfert</button>
-      <button class="act rec" onclick="ouvrirForm('rec')"><span class="ic">+</span>Vente</button>
-      <button class="act enc" onclick="ouvrirForm('enc')"><span class="ic">⬇</span>Encaisser</button>
-      <button class="act aut" onclick="ouvrirForm('aut')"><span class="ic">≡</span>Autre</button>
+      <button class="act rec" onclick="ouvrirForm('rec')"><span class="ic">+</span>Recette</button>
+    </div>
+    <div class="actions petit">
+      <button class="act aut" onclick="ouvrirForm('reg')">✓ Payer</button>
+      <button class="act aut" onclick="ouvrirForm('enc')">⬇ Encaisser</button>
+      <button class="act aut" onclick="ouvrirForm('tra')">⇄ Transfert</button>
+      <button class="act aut" onclick="ouvrirForm('aut')">≡ Autre</button>
     </div>
 
     <h2>À payer</h2>
-    <div class="tab lien-l" id="resApayer" onclick="vue('apayer')"></div>
+    <div class="tab lien-l" id="resApayer" onclick="AMODE='payer';vue('apayer')"></div>
 
-    <h2>Mes caisses</h2>
+    <h2>Mes caisses et banques</h2>
     <div class="caisses" id="caisses"></div>
 
     <h2 id="titreMois">Ce mois-ci par domaine</h2>
@@ -157,18 +164,16 @@
   <div class="corps">
     <input id="f-montant" class="montant" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
     <div class="unite">MAD</div>
+    <div id="bloc-quand" style="display:none"><label class="lb">Quand ?</label>
+      <div class="quand"><button type="button" data-q="now" id="q-now">Maintenant</button><button type="button" data-q="tard" id="q-tard">Plus tard</button></div></div>
+    <div id="bloc-caisse"><label class="lb" id="lb-caisse">Payé avec</label><div class="choix" id="c-caisse"></div></div>
+    <div id="bloc-ech" style="display:none"><label class="lb" id="lb-ech">À payer le</label>
+      <input id="f-ech" class="ch" type="date">
+      <div class="choix" id="c-ech" style="margin-top:8px"></div></div>
+    <div id="bloc-vers" style="display:none"><label class="lb">Vers la caisse</label><div class="choix" id="c-vers"></div></div>
+    <div id="bloc-rub"><label class="lb" id="lb-rub">Rubrique</label><select id="f-rub"></select></div>
     <div id="bloc-tiers" style="display:none"><label class="lb" id="lb-tiers">Fournisseur</label><select id="f-tiers" class="ch"></select>
       <div class="note" id="note-tiers" style="margin-top:6px"></div></div>
-    <div id="bloc-rub"><label class="lb" id="lb-rub">Rubrique</label><select id="f-rub"></select></div>
-    <div id="bloc-paye" style="display:none"><label class="lb" id="lb-paye">Payé maintenant</label>
-      <input id="f-paye" class="ch" type="text" inputmode="decimal" placeholder="0">
-      <div class="choix" style="margin-top:8px"><button type="button" class="chip" data-p="tout">Tout</button><button type="button" class="chip" data-p="moitie">La moitié</button><button type="button" class="chip" data-p="rien">Rien (à payer plus tard)</button></div>
-      <div id="bloc-ech" style="display:none"><label class="lb">À payer le (échéance)</label>
-        <input id="f-ech" class="ch" type="date">
-        <div class="choix" id="c-ech" style="margin-top:8px"></div>
-        <div class="note">Laissez vide si c'est à payer tout de suite.</div></div></div>
-    <div id="bloc-caisse"><label class="lb" id="lb-caisse">Payé avec</label><div class="choix" id="c-caisse"></div></div>
-    <div id="bloc-vers" style="display:none"><label class="lb">Vers la caisse</label><div class="choix" id="c-vers"></div></div>
     <div id="bloc-libre" style="display:none">
       <label class="lb">Compte DÉBIT (ce qui reçoit)</label><select id="f-deb"></select>
       <label class="lb">Compte CRÉDIT (ce qui donne)</label><select id="f-cre"></select>
@@ -401,7 +406,8 @@ function dessiner(){
     tot+=c.solde;
     return '<button class="caisse" data-caisse="'+esc(c.nom)+'"><div class="n">'+esc(c.nom)+'</div><div class="s'+(c.solde<0?' neg':'')+'">'+mad(c.solde)+'</div></button>';
   }).join('');
-  document.getElementById('sousTotal').innerHTML='Reste à payer : <b>'+mad(reste)+'</b>'+(retard>0.005?' · <b>'+mad(retard)+' en retard</b>':'')+'<br>Argent en caisse : '+mad(tot);
+  var cr=creances(), aEnc=cr.reduce(function(s,x){return s+x.reste;},0);
+  document.getElementById('sousTotal').innerHTML='Reste à payer : <b>'+mad(reste)+'</b>'+(retard>0.005?' · <b>'+mad(retard)+' en retard</b>':'')+(aEnc>0.005?'<br>À encaisser : <b>'+mad(aEnc)+'</b>':'')+'<br>Argent en caisse et banque : '+mad(tot);
   document.getElementById('resApayer').innerHTML=resumeApayer(dt);
   var mc=moisCourant().split('-');
   document.getElementById('titreMois').textContent='Ce mois-ci par domaine ('+mc[1]+'/'+mc[0]+')';
@@ -642,17 +648,20 @@ document.getElementById('liste').addEventListener('click', function(ev){
    Détail et suppression
    ========================================================= */
 var DETAIL=null;
-function detail(o){
+function detail(o, action){
   if(!o) return; DETAIL=o;
   var rows=[['Date',dateFr(o.date)],['N° pièce',o.piece||'auto'],['Libellé',o.libelle],['Débit (reçoit)',o.debit],['Crédit (donne)',o.credit],['Montant',mad(o.montant)],['Domaine',o.activite]];
   if(o.ligne) rows.push(['Ligne du Journal',o.ligne]);
   var b = o.erreur ? '<div class="bandeau err">Refusée par le Sheet : '+esc(o.erreur)+'</div>' :
           o.attente ? '<div class="bandeau att">Enregistrée dans le téléphone, pas encore envoyée au Sheet. Elle partira dès que le réseau revient.</div>' : '';
   var lib = o.id ? 'Annuler cette saisie' : o.opModif ? 'Abandonner la modification' : o.opSuppr ? 'Abandonner la suppression' : 'Supprimer cette opération';
+  if(action && action.info) b += '<div class="bandeau att">'+esc(action.info)+'</div>';
   document.getElementById('detailCorps').innerHTML = b + rows.map(function(r){return '<div class="ligne2"><span>'+r[0]+'</span><span>'+esc(r[1])+'</span></div>';}).join('') +
-    '<button class="valider" id="btnModif">✏️ Modifier</button>' +
+    (action ? '<button class="valider" id="btnAction">'+esc(action.lib)+'</button>' : '') +
+    '<button class="valider" id="btnModif"'+(action?' style="background:#fff;color:var(--vert);border:2px solid var(--vert);margin-top:10px"':'')+'>✏️ Modifier</button>' +
     '<button class="suppr" id="btnSuppr">'+lib+'</button>';
   document.getElementById('btnSuppr').onclick=supprimer;
+  if(action) document.getElementById('btnAction').onclick=action.fn;
   document.getElementById('btnModif').onclick=function(){ fermer('detail'); ouvrirForm('aut', o); };
   document.getElementById('detail').className='ecran on';
 }
@@ -681,9 +690,9 @@ function supprimer(){
    Formulaire de saisie
    ========================================================= */
 var CONF={
-  dep:{titre:'Dépense', coul:'var(--rouge)', lbCaisse:'Payé avec la caisse', lbRub:'Centre de dépense', lbTiers:'Fournisseur', grp:'Fournisseur', lbPaye:'Payé maintenant'},
-  rec:{titre:'Vente / recette', coul:'var(--vert2)', lbCaisse:'Encaissé dans la caisse', lbRub:'Catégorie de recette', lbTiers:'Client', grp:'Client', lbPaye:'Encaissé maintenant'},
-  reg:{titre:'Régler un fournisseur', coul:'#6B4E9B', lbCaisse:'Payé avec la caisse', lbTiers:'Fournisseur à régler', grp:'Fournisseur'},
+  dep:{titre:'Dépense', coul:'var(--rouge)', lbCaisse:'Payée avec (caisse ou banque)', lbTard:'Sera payée avec (caisse ou banque)', lbEch:'À payer le', lbRub:'Centre de dépense', lbTiers:'Fournisseur (facultatif)', grp:'Fournisseur', divers:'DIVERS À PAYER'},
+  rec:{titre:'Recette', coul:'var(--vert2)', lbCaisse:'Encaissée dans (caisse ou banque)', lbTard:'Sera encaissée dans (caisse ou banque)', lbEch:'À encaisser le', lbRub:'Catégorie de recette', lbTiers:'Client (facultatif)', grp:'Client', divers:'DIVERS À ENCAISSER'},
+  reg:{titre:'Payer une dette', coul:'#6B4E9B', lbCaisse:'Payé avec la caisse', lbTiers:'Fournisseur à régler', grp:'Fournisseur'},
   enc:{titre:'Encaisser un client', coul:'#1F7A6B', lbCaisse:'Encaissé dans la caisse', lbTiers:'Client', grp:'Client'},
   tra:{titre:'Transfert entre caisses', coul:'var(--bleu)', lbCaisse:'De la caisse'},
   aut:{titre:'Autre écriture', coul:'var(--vert)'}
@@ -724,7 +733,7 @@ function ouvrirForm(type, edit){
   var EDIT=edit||null;
   var caisses=D.caisses.map(function(c){return c.nom;});
   var dern=lire(CLE_DERN,'');
-  F={type:type, caisse: caisses.indexOf(dern)>=0 ? dern : (caisses.filter(function(c){return /caisse/i.test(c);})[0]||caisses[0]||''), vers:'', payeTouche:false};
+  F={type:type, caisse: caisses.indexOf(dern)>=0 ? dern : (caisses.filter(function(c){return /caisse/i.test(c);})[0]||caisses[0]||''), vers:'', quand:'now'};
   if(type==='tra') F.vers=caisses.filter(function(c){return c!==F.caisse;})[0]||'';
   F.activite = type==='tra' ? (D.activites.indexOf('Général')>=0?'Général':activiteDe(F.vers)) : activiteDe(F.caisse);
   var c=CONF[type];
@@ -737,15 +746,17 @@ function ouvrirForm(type, edit){
   $('bloc-libre').style.display = type==='aut' ? '' : 'none';
   if(c.lbCaisse) $('lb-caisse').textContent=c.lbCaisse;
   if(c.lbRub) $('lb-rub').textContent=c.lbRub;
-  if(c.lbPaye) $('lb-paye').textContent=c.lbPaye;
+  $('bloc-quand').style.display = (type==='dep'||type==='rec') ? '' : 'none';
+  if(c.lbEch) $('lb-ech').textContent=c.lbEch;
   if(type==='dep'||type==='rec') remplirRub('');
   if(type==='aut'){ options($('f-deb'), D.comptes); options($('f-cre'), D.comptes); }
-  ['f-montant','f-lib','f-piece','f-paye','f-ech'].forEach(function(id){ $(id).value=''; });
+  ['f-montant','f-lib','f-piece','f-ech'].forEach(function(id){ $(id).value=''; });
   $('f-date').value=aujourdhui();
   $('btnValider').disabled=false;
   if(c.lbTiers) remplirTiers('');
   var anF=new Date().getFullYear();
   chips('c-ech', ['Fin '+anF,'Fin '+(anF+1),'Fin '+(anF+2)], '', function(v){ $('f-ech').value=v.slice(4)+'-12-31'; resume(); });
+  majQuand();
   F.edit=EDIT;
   $('btnValider').textContent = EDIT ? 'Enregistrer la modification' : 'Enregistrer';
   if(EDIT){
@@ -773,30 +784,32 @@ $('f-rub').addEventListener('change', function(){
 });
 function remplirTiers(val){
   var c=CONF[F.type], grp=c.grp, sel=$('f-tiers');
-  var vide = F.type==='dep' ? '— Sans fournisseur (petite dépense payée comptant) —' : F.type==='rec' ? '— Sans client (vente payée comptant) —' : '— choisir —';
+  var vide = (F.type==='dep'||F.type==='rec') ? '— Aucun —' : '— choisir —';
   sel.innerHTML='<option value="">'+vide+'</option>' + tiersDe(grp).map(function(n){ return '<option value="'+esc(n)+'"'+(n===val?' selected':'')+'>'+esc(n)+'</option>'; }).join('') +
     '<option value="+">＋ Nouveau tiers…</option>';
   $('lb-tiers').textContent=c.lbTiers;
 }
 function tiersChoisi(){ var v=$('f-tiers').value; return v==='+' ? '' : v; }
-function payeMontant(){
-  var m=lireMontant(), p=nombre('f-paye');
-  if(!F.payeTouche) return isNaN(m)?0:m;
-  return isNaN(p)?0:p;
+function majQuand(){
+  $('q-now').className = F.quand==='now' ? 'on' : '';
+  $('q-tard').className = F.quand==='tard' ? 'on' : '';
+  $('q-now').textContent = F.type==='rec' ? 'Encaissée maintenant' : 'Payée maintenant';
+  $('q-tard').textContent = F.type==='rec' ? 'À encaisser plus tard' : 'À payer plus tard';
 }
+document.querySelector('#bloc-quand .quand').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-q]'); if(!b) return;
+  F.quand=b.dataset.q; majQuand(); majVisibilite();
+  if(F.quand==='tard' && !$('f-ech').value) $('f-ech').focus();
+});
+function plusTard(){ return (F.type==='dep'||F.type==='rec') && F.quand==='tard'; }
 function majVisibilite(){
-  var t=F.type, tiers=CONF[t].lbTiers ? tiersChoisi() : '';
-  var avecPaye = (t==='dep'||t==='rec') && !!tiers;
-  $('bloc-paye').style.display = avecPaye ? '' : 'none';
-  if(avecPaye && !F.payeTouche){ var m=lireMontant(); $('f-paye').value = isNaN(m)?'':String(m).replace('.',','); }
-  var mm=lireMontant(); if(isNaN(mm)) mm=0;
-  $('bloc-ech').style.display = (avecPaye && t==='dep' && payeMontant() < mm-0.005) ? '' : 'none';
-  var caisseUtile = t!=='aut' && (!avecPaye || payeMontant()>0);
-  $('bloc-caisse').style.display = caisseUtile ? '' : 'none';
+  var t=F.type, tiers=CONF[t].lbTiers ? tiersChoisi() : '', tard=plusTard();
+  $('bloc-ech').style.display = tard ? '' : 'none';
+  $('bloc-caisse').style.display = t!=='aut' ? '' : 'none';
+  if(CONF[t].lbCaisse) $('lb-caisse').textContent = tard ? CONF[t].lbTard : CONF[t].lbCaisse;
   var note='';
   if(tiers) note = soldeTiersTxt(tiers);
-  if(t==='dep' && !tiers) note='Pour suivre ce que vous devez, choisissez le fournisseur.';
-  if(t==='rec' && !tiers) note='Pour suivre ce qu\'on vous doit, choisissez le client.';
+  else if(tard) note = 'Sans '+(t==='dep'?'fournisseur':'client')+', elle sera notée dans « '+CONF[t].divers+' ».';
   $('note-tiers').textContent=note;
   resume();
 }
@@ -819,13 +832,16 @@ function majChoix(){
 }
 /* Les écritures que va créer le formulaire */
 function ecritures(){
-  var t=F.type, m=lireMontant(), rub=$('f-rub').value, tiers=tiersChoisi(), p=payeMontant(), out=[], lettrer='';
+  var t=F.type, m=lireMontant(), rub=$('f-rub').value, tiers=tiersChoisi(), tard=plusTard(), out=[], lettrer='';
   if(isNaN(m)) m=0;
+  if(rub==='+') rub='';
   if(t==='dep'){
-    if(tiers){ out.push({debit:rub, credit:tiers, montant:m, role:'facture'}); if(p>0) out.push({debit:tiers, credit:F.caisse, montant:p, role:'reglement'}); if(Math.abs(p-m)<0.005 && m>0) lettrer=tiers; }
+    if(tard) out.push({debit:rub, credit:tiers||CONF.dep.divers, montant:m, role:'facture'});
+    else if(tiers){ out.push({debit:rub, credit:tiers, montant:m, role:'facture'}); out.push({debit:tiers, credit:F.caisse, montant:m, role:'reglement'}); lettrer=tiers; }
     else out.push({debit:rub, credit:F.caisse, montant:m, role:'comptant'});
   } else if(t==='rec'){
-    if(tiers){ out.push({debit:tiers, credit:rub, montant:m, role:'facture'}); if(p>0) out.push({debit:F.caisse, credit:tiers, montant:p, role:'reglement'}); if(Math.abs(p-m)<0.005 && m>0) lettrer=tiers; }
+    if(tard) out.push({debit:tiers||CONF.rec.divers, credit:rub, montant:m, role:'facture'});
+    else if(tiers){ out.push({debit:tiers, credit:rub, montant:m, role:'facture'}); out.push({debit:F.caisse, credit:tiers, montant:m, role:'reglement'}); lettrer=tiers; }
     else out.push({debit:F.caisse, credit:rub, montant:m, role:'comptant'});
   } else if(t==='reg') out.push({debit:tiers, credit:F.caisse, montant:m, role:'reglement'});
   else if(t==='enc') out.push({debit:F.caisse, credit:tiers, montant:m, role:'reglement'});
@@ -837,20 +853,12 @@ function resume(){
   var r=ecritures();
   $('resume').innerHTML = r.lignes.map(function(e,i){
     return (r.lignes.length>1 ? '<b>'+(i+1)+'.</b> ' : 'Écriture : ')+'<b>Débit</b> '+esc(e.debit||'…')+' &nbsp;/&nbsp; <b>Crédit</b> '+esc(e.credit||'…')+(e.montant>0?' &nbsp;·&nbsp; <b>'+mad(e.montant)+'</b>':'');
-  }).join('<br>') + (F.activite?'<br>Domaine : '+esc(F.activite):'') + (r.lettrer?'<br>✓ Facture et règlement seront lettrés ensemble.':'') + (echSaisie()?'<br>⌛ Reste à payer le <b>'+dateFr(echSaisie())+'</b>':'');
+  }).join('<br>') + (F.activite?'<br>Domaine : '+esc(F.activite):'') + (r.lettrer?'<br>✓ Facture et règlement seront lettrés ensemble.':'') + (plusTard()?'<br>⌛ '+(F.type==='rec'?'À encaisser':'À payer')+' le <b>'+(echSaisie()?dateFr(echSaisie()):'(date non choisie)')+'</b> avec <b>'+esc(F.caisse)+'</b>':'');
 }
 ['f-montant','f-rub','f-deb','f-cre'].forEach(function(id){
   var el=$(id); el.addEventListener('input',majVisibilite); el.addEventListener('change',majVisibilite);
 });
-$('f-paye').addEventListener('input', function(){ F.payeTouche=true; majVisibilite(); });
 $('f-ech').addEventListener('change', resume);
-document.querySelector('#bloc-paye .choix').addEventListener('click', function(ev){
-  var b=ev.target.closest('[data-p]'); if(!b) return;
-  var m=lireMontant(); if(isNaN(m)) m=0;
-  F.payeTouche=true;
-  $('f-paye').value = b.dataset.p==='tout' ? String(m).replace('.',',') : b.dataset.p==='moitie' ? String(Math.round(m*50)/100).replace('.',',') : '0';
-  majVisibilite();
-});
 $('f-tiers').addEventListener('change', function(){
   if(this.value==='+'){
     ouvrirNouveau('tiers', function(n){ remplirTiers(n); majVisibilite(); }, function(){ $('f-tiers').value=''; majVisibilite(); });
@@ -867,12 +875,11 @@ function valider(){
   if(t==='aut' && (!r.lignes[0].debit || !r.lignes[0].credit)) return toast('Choisissez les deux comptes', true);
   for(var i=0;i<r.lignes.length;i++){ if(r.lignes[i].debit===r.lignes[i].credit) return toast('Débit et crédit doivent être différents', true); }
   if(!F.activite) return toast('Choisissez un domaine', true);
-  var p=payeMontant();
-  if((t==='dep'||t==='rec') && tiers && p>m+0.005 && !confirm('Le montant payé ('+mad(p)+') dépasse la facture ('+mad(m)+'). Le surplus sera une avance. Continuer ?')) return;
+  if(plusTard() && !echSaisie()) return toast('Choisissez la date '+(t==='rec'?'d\'encaissement':'de paiement'), true);
   var lib=$('f-lib').value.trim(), date=$('f-date').value||aujourdhui(), piece=$('f-piece').value.trim(), h=new Date().toISOString();
   var lignes=r.lignes.map(function(e){
     var l=lib;
-    if(e.role==='facture'){ l = lib || (t==='dep' ? e.debit : e.credit); if(echSaisie()) l += ' · éch. '+dateFr(echSaisie()); }
+    if(e.role==='facture'){ l = lib || (t==='dep' ? e.debit : e.credit); if(plusTard()) l += ' · éch. '+dateFr(echSaisie())+' · via '+F.caisse; }
     else if(e.role==='reglement') l = (t==='dep'||t==='reg' ? 'Règlement ' : 'Encaissement ')+tiers+(lib?' · '+lib:'');
     else if(e.role==='comptant') l = lib || (t==='dep' ? e.debit : e.credit);
     else if(e.role==='transfert') l = lib || 'Transfert '+F.caisse+' → '+F.vers;
@@ -881,6 +888,9 @@ function valider(){
   if(F.edit) return enregistrerModif(F.edit, {e:lignes[0]});
   var op = lignes.length===1 ? {id:nouvelId(), type:'ajout', e:lignes[0]} : {id:nouvelId(), type:'groupe', ecritures:lignes, lettrer:r.lettrer};
   $('btnValider').disabled=true;
+  // dépense ou recette à plus tard sans tiers : compte « DIVERS À PAYER / À ENCAISSER », créé s'il n'existe pas
+  if(plusTard() && !tiers && !D.comptes.some(function(c){return c.nom===CONF[t].divers;}))
+    FILE.push({id:nouvelId(), type:'compte', nom:CONF[t].divers, typeCompte:'Tiers', groupe:CONF[t].grp});
   FILE.push(op);
   if(!ecrire(CLE_FILE, FILE)){ FILE.pop(); $('btnValider').disabled=false; return; }
   if(t!=='aut') ecrire(CLE_DERN, F.caisse);
@@ -993,34 +1003,39 @@ function echSaisie(){
 function echeanceDe(lib, date){
   var s=String(lib||''), d=String(date||'').slice(0,10);
   var m=s.match(/[ée]ch\.?\s*:?\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
-  if(m) return {ech:m[3]+'-'+deux(m[2])+'-'+deux(m[1]), annee:false};
+  var via=(s.match(/·\s*via\s+(.+?)\s*(?:·|$)/i)||[])[1]||'';
+  if(m) return {ech:m[3]+'-'+deux(m[2])+'-'+deux(m[1]), annee:false, via:via};
   var y=s.match(/(?:^|\D)(20\d\d)(?!\d)/);
-  if(y && Number(y[1])>Number(d.slice(0,4))) return {ech:y[1]+'-12-31', annee:true};
-  return {ech:d, annee:false};
+  if(y && Number(y[1])>Number(d.slice(0,4))) return {ech:y[1]+'-12-31', annee:true, via:via};
+  return {ech:d, annee:false, via:via};
 }
-function sansEch(lib){ return String(lib||'').replace(/\s*·\s*[ée]ch\.?\s*:?\s*\d{1,2}\/\d{1,2}\/\d{4}/i,'').trim(); }
-function dettes(){
+function sansEch(lib){ return String(lib||'').replace(/\s*·\s*[ée]ch\.?\s*:?\s*\d{1,2}\/\d{1,2}\/\d{4}/i,'').replace(/\s*·\s*via\s+.*$/i,'').trim(); }
+function dettes(){ return enCours_(false); }
+function creances(){ return enCours_(true); }
+/* client=false : ce que vous devez (dettes fournisseurs) ; client=true : ce qu'on vous doit (créances clients) */
+function enCours_(client){
   if(!D) return [];
-  var four={}; D.tiers.forEach(function(c){ if(c.groupe!=='Client' && c.groupe!=='Avance') four[c.nom]=1; });
+  var four={}; D.tiers.forEach(function(c){ if(client ? c.groupe==='Client' : (c.groupe!=='Client' && c.groupe!=='Avance')) four[c.nom]=1; });
+  var DU = client ? 'D' : 'C', REGLE = client ? 'C' : 'D';
   var parT={};
   function ajoute(t, x){ (parT[t]=parT[t]||[]).push(x); }
   Object.keys(D.lettrage||{}).forEach(function(k){
     if(!four[k]) return;
     D.lettrage[k].forEach(function(x){ if(x.lettre) return;
-      ajoute(k, {date:x.date, libelle:x.libelle, contre:x.contrepartie, montant:Number(x.montant)||0, sens:x.sens}); });
+      ajoute(k, {ligne:x.ligne, date:x.date, libelle:x.libelle, contre:x.contrepartie, montant:Number(x.montant)||0, sens:x.sens, activite:x.activite, piece:x.piece}); });
   });
   FILE.forEach(function(op){
     if(op.erreur) return;
     var es = op.type==='ajout' ? [op.e] : op.type==='groupe' ? op.ecritures : [];
     es.forEach(function(e){
-      if(four[e.credit]) ajoute(e.credit, {date:e.date, libelle:e.libelle, contre:e.debit, montant:Number(e.montant)||0, sens:'C', att:true});
-      if(four[e.debit]) ajoute(e.debit, {date:e.date, libelle:e.libelle, contre:e.credit, montant:Number(e.montant)||0, sens:'D', att:true});
+      if(four[e.credit]) ajoute(e.credit, {id:op.id, date:e.date, libelle:e.libelle, contre:e.debit, montant:Number(e.montant)||0, sens:'C', att:true});
+      if(four[e.debit]) ajoute(e.debit, {id:op.id, date:e.date, libelle:e.libelle, contre:e.credit, montant:Number(e.montant)||0, sens:'D', att:true});
     });
   });
   var auj=aujourdhui(), out=[];
   Object.keys(parT).forEach(function(t){
-    var l=parT[t], paye=l.filter(function(x){return x.sens==='D';}).reduce(function(s,x){return s+x.montant;},0);
-    l.filter(function(x){return x.sens==='C';}).map(function(x){ var e=echeanceDe(x.libelle, x.date); return Object.assign({}, x, e, {tiers:t}); })
+    var l=parT[t], paye=l.filter(function(x){return x.sens===REGLE;}).reduce(function(s,x){return s+x.montant;},0);
+    l.filter(function(x){return x.sens===DU;}).map(function(x){ var e=echeanceDe(x.libelle, x.date); return Object.assign({}, x, e, {tiers:t, client:client}); })
      .sort(function(a,b){ return a.ech<b.ech?-1:a.ech>b.ech?1:0; })
      .forEach(function(x){
        var pris=Math.min(paye, x.montant); paye-=pris;
@@ -1045,16 +1060,17 @@ function resumeApayer(dt){
     return '<div class="r" style="grid-template-columns:1fr auto"><span'+(r[2]?' class="ret"':'')+'>'+r[0]+'</span><span style="font-weight:700'+(r[2]?';color:var(--rouge)':'')+'">'+mad(r[1])+'</span></div>';
   }).join('') + '<div class="r" style="grid-template-columns:1fr auto;font-weight:700"><span>Total à payer ›</span><span>'+mad(tot)+'</span></div>';
 }
-var AFILTRE='Tout', ALISTE=[];
+var AFILTRE='Tout', ALISTE=[], AMODE='payer';
 function dessinerApayer(){
   var z=$('v-apayer'); if(!D){ z.innerHTML=''; return; }
-  var dt=dettes(), annees=[];
+  var cr=creances(), dt=AMODE==='encaisser' ? cr : dettes(), annees=[];
   dt.forEach(function(x){ var a=x.ech.slice(0,4); if(annees.indexOf(a)<0) annees.push(a); });
   var f=['Tout']; if(dt.some(function(x){return x.retard;})) f.push('En retard');
-  f=f.concat(annees).concat(dt.length?['Par fournisseur']:[]);
+  f=f.concat(annees).concat(dt.length?['Par tiers']:[]);
   if(f.indexOf(AFILTRE)<0) AFILTRE='Tout';
-  var h='<h2>À payer</h2><div class="filtres">'+f.map(function(x){ return '<button class="chip'+(x===AFILTRE?' on':'')+'" data-af="'+esc(x)+'">'+esc(x)+'</button>'; }).join('')+'</div>';
-  if(AFILTRE==='Par fournisseur'){
+  var h='<div class="quand" style="margin-top:16px"><button data-am="payer" class="'+(AMODE==='payer'?'on':'')+'">À payer</button><button data-am="encaisser" class="'+(AMODE==='encaisser'?'on':'')+'">À encaisser'+(cr.length?' ('+cr.length+')':'')+'</button></div>'+
+    '<h2>'+(AMODE==='encaisser'?'À encaisser':'À payer')+'</h2><div class="filtres">'+f.map(function(x){ return '<button class="chip'+(x===AFILTRE?' on':'')+'" data-af="'+esc(x)+'">'+esc(x)+'</button>'; }).join('')+'</div>';
+  if(AFILTRE==='Par tiers'){
     var g={}; dt.forEach(function(x){ g[x.tiers]=(g[x.tiers]||0)+x.reste; });
     var noms=Object.keys(g).sort(function(a,b){return g[b]-g[a];});
     h+='<div class="tab" style="margin-top:8px">'+noms.map(function(n){ return '<div class="r" style="grid-template-columns:1fr auto"><span>'+esc(n)+'</span><span style="font-weight:700">'+mad(g[n])+'</span></div>'; }).join('')+'</div>';
@@ -1063,25 +1079,41 @@ function dessinerApayer(){
   ALISTE = dt.filter(function(x){ return AFILTRE==='Tout' || (AFILTRE==='En retard' ? x.retard : x.ech.slice(0,4)===AFILTRE); });
   var tot=ALISTE.reduce(function(s,x){return s+x.reste;},0);
   h+='<div class="tab" style="margin-top:8px"><div class="r" style="grid-template-columns:1fr auto;font-weight:700"><span>Total '+(AFILTRE==='Tout'?'':esc(AFILTRE))+'</span><span>'+mad(tot)+'</span></div></div>';
-  h+='<p class="note" style="margin:8px 2px 10px">Touchez une dette pour la payer. Pour une dépense future, choisissez « Dépense », le fournisseur, « Rien (à payer plus tard) » et la date d\'échéance.</p>';
+  h+='<p class="note" style="margin:8px 2px 10px">'+(AMODE==='encaisser'?'Touchez une ligne quand l\'argent est reçu.':'Touchez une ligne pour la payer.')+' Pour en ajouter : « '+(AMODE==='encaisser'?'Recette':'Dépense')+' » puis « Plus tard ».</p>';
   h+= ALISTE.length ? ALISTE.map(function(x,i){
     return '<button class="op'+(x.att?' att':'')+'" data-ai="'+i+'"><div><div class="l1">'+esc(sansEch(x.libelle)||x.contre)+'</div>'+
       '<div class="l2">'+esc(x.tiers)+' · '+esc(x.contre||'')+' · saisi le '+dateFr(x.date)+'</div>'+
-      '<div class="l3"'+(x.retard?' style="color:var(--rouge)"':'')+'>'+(x.retard?'⚠ En retard · ':'⌛ ')+'Échéance : '+txtEch(x)+(x.att?' · en attente d\'envoi':'')+'</div></div>'+
-      '<div style="text-align:right"><div class="m dep">'+mad(x.reste)+'</div>'+(x.reste<x.montant-0.005?'<div class="l2">sur '+mad(x.montant)+'</div>':'')+'</div></button>';
+      '<div class="l3"'+(x.retard?' style="color:var(--rouge)"':'')+'>'+(x.retard?'⚠ En retard · ':'⌛ ')+'Échéance : '+txtEch(x)+(x.via?' · '+esc(x.via):'')+(x.att?' · en attente d\'envoi':'')+'</div></div>'+
+      '<div style="text-align:right"><div class="m '+(x.client?'rec':'dep')+'">'+mad(x.reste)+'</div>'+(x.reste<x.montant-0.005?'<div class="l2">sur '+mad(x.montant)+'</div>':'')+'</div></button>';
   }).join('') : '<div class="vide">Rien à payer ici.</div>';
   z.innerHTML=h; brancherApayer(z);
 }
 function brancherApayer(z){
   z.querySelectorAll('[data-af]').forEach(function(b){ b.onclick=function(){ AFILTRE=b.dataset.af; dessinerApayer(); }; });
+  z.querySelectorAll('[data-am]').forEach(function(b){ b.onclick=function(){ AMODE=b.dataset.am; AFILTRE='Tout'; dessinerApayer(); }; });
   z.querySelectorAll('[data-ai]').forEach(function(b){ b.onclick=function(){
     var x=ALISTE[Number(b.dataset.ai)]; if(!x) return;
-    ouvrirForm('reg');
+    detail(opDeDette(x), {lib:(x.client?'⬇ Encaisser ':'✓ Payer ')+mad(x.reste), fn:function(){ fermer('detail'); reglerDette(x); },
+      info:'Reste '+(x.client?'à encaisser':'à payer')+' : '+mad(x.reste)+' · échéance '+txtEch(x)+(x.via?' · '+x.via:'')});
+  }; });
+}
+/* L'opération complète d'une dette (pour la modifier) */
+function opDeDette(x){
+  var L=glLignes(), o=null;
+  L.forEach(function(r){ if(o) return;
+    if(x.id ? (r.id===x.id && (r.debit===x.tiers||r.credit===x.tiers)) : (r.ligne===x.ligne && !r.id)) o=r; });
+  if(o) return o;
+  return {ligne:x.ligne, date:x.date, piece:x.piece||'', libelle:x.libelle, montant:x.montant, activite:x.activite||'',
+    debit: x.client ? x.tiers : x.contre, credit: x.client ? x.contre : x.tiers};
+}
+/* Régler : ouvre « Payer » ou « Encaisser » prérempli (la date du règlement reste modifiable) */
+function reglerDette(x){
+    ouvrirForm(x.client ? 'enc' : 'reg');
     remplirTiers(x.tiers);
     $('f-montant').value=String(x.reste).replace('.',',');
     $('f-lib').value=sansEch(x.libelle);
-    majVisibilite();
-  }; });
+    if(x.via && D.caisses.some(function(c){return c.nom===x.via;})) F.caisse=x.via;
+    majChoix(); majVisibilite();
 }
 
 /* =========================================================
