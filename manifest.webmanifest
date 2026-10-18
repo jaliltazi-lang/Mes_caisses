@@ -1,7 +1,7 @@
 {
-  "name": "Mes caisses",
-  "short_name": "Mes caisses",
-  "description": "Saisie des dépenses, recettes et transferts de vos caisses, même sans réseau.",
+  "name": "Mes dépenses",
+  "short_name": "Mes dépenses",
+  "description": "Suivi des dépenses, des dettes fournisseurs et des échéances à payer, même sans réseau.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
