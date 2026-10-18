@@ -36,8 +36,8 @@
   .act .ic{font-size:26px;line-height:1}
   .act.reg{background:#6B4E9B} .act.enc{background:#1F7A6B} .act.aut{background:#fff;color:var(--texte);border:1px solid var(--trait);box-shadow:none} .act.dep{background:var(--rouge)} .act.rec{background:var(--vert2)} .act.tra{background:var(--bleu)}
   .lien-l{cursor:pointer}
-  .actions.grand{grid-template-columns:1fr 1fr} .actions.grand .act{padding:20px 4px;font-size:18px} .actions.grand .ic{font-size:32px}
-  .actions.petit{grid-template-columns:repeat(4,1fr);margin-top:8px} .actions.petit .act{padding:11px 2px;font-size:13px;flex-direction:row;justify-content:center}
+  .actions.grand{grid-template-columns:1fr 1fr 1fr} .act.ecr{background:var(--bleu)} .actions.grand .act{padding:20px 4px;font-size:18px} .actions.grand .ic{font-size:32px}
+  .actions.petit{grid-template-columns:repeat(3,1fr);margin-top:8px} .actions.petit .act{padding:11px 2px;font-size:13px;flex-direction:row;justify-content:center}
   .quand{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .quand button{border:2px solid var(--trait);background:#fff;border-radius:14px;padding:14px 6px;font-size:15px;font-weight:700;color:var(--texte)}
   .quand button.on{border-color:var(--vert);background:var(--vertc);color:var(--vert)}
@@ -104,6 +104,13 @@
     .imp-titre{display:block;font-size:18px;font-weight:700;margin:0 0 8px}
     .bal{border:1px solid #999} .bal .r{font-size:11px;padding:4px 6px;break-inside:avoid}
   }
+  .pk-btn{width:100%;font-size:16px;padding:13px 12px;border:1px solid var(--trait);border-radius:12px;background:#fff;color:var(--texte);text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+  .pk-btn::after{content:'🔍';font-size:14px;opacity:.6}
+  .pk-btn.vide{color:var(--gris)}
+  .pk-g{font-size:12px;color:var(--gris);font-weight:700;text-transform:uppercase;margin:14px 4px 6px}
+  .pk-it{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--trait);border-radius:12px;padding:13px 12px;font-size:16px;margin-bottom:6px;color:var(--texte)}
+  .pk-it.on{border-color:var(--vert);background:var(--vertc);font-weight:700}
+  .pk-it b{background:#FFF1B8}
   .chip.plus{border-style:dashed;color:var(--vert);font-weight:600}
   .glf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .glf label{font-size:12px;color:var(--gris);font-weight:600;display:block;margin:0 2px 4px}
@@ -130,12 +137,12 @@
     <div class="actions grand">
       <button class="act dep" onclick="ouvrirForm('dep')"><span class="ic">−</span>Dépense</button>
       <button class="act rec" onclick="ouvrirForm('rec')"><span class="ic">+</span>Recette</button>
+      <button class="act ecr" onclick="ouvrirForm('aut')"><span class="ic">≡</span>Écriture</button>
     </div>
     <div class="actions petit">
       <button class="act aut" onclick="ouvrirForm('reg')">✓ Payer</button>
       <button class="act aut" onclick="ouvrirForm('enc')">⬇ Encaisser</button>
       <button class="act aut" onclick="ouvrirForm('tra')">⇄ Transfert</button>
-      <button class="act aut" onclick="ouvrirForm('aut')">≡ Autre</button>
     </div>
 
     <h2>À payer</h2>
@@ -176,6 +183,13 @@
   <div class="corps">
     <input id="f-montant" class="montant" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
     <div class="unite">MAD</div>
+    <div id="bloc-libre" style="display:none">
+      <label class="lb">Compte DÉBIT (ce qui reçoit)</label><select id="f-deb"></select>
+      <label class="lb">Compte CRÉDIT (ce qui donne)</label><select id="f-cre"></select>
+    </div>
+    <div id="bloc-mvt" style="display:none"><label class="lb">Mouvement d'argent</label>
+      <div class="quand" style="grid-template-columns:1fr 1fr 1fr"><button type="button" data-m="non">Aucun</button><button type="button" data-m="pai">− Paiement</button><button type="button" data-m="enc">+ Encaissement</button></div>
+      <div class="note" id="note-mvt"></div></div>
     <div id="bloc-quand" style="display:none"><label class="lb">Quand ?</label>
       <div class="quand"><button type="button" data-q="now" id="q-now">Maintenant</button><button type="button" data-q="tard" id="q-tard">Plus tard</button></div></div>
     <div id="bloc-caisse"><label class="lb" id="lb-caisse">Payé avec</label><div class="choix" id="c-caisse"></div></div>
@@ -186,10 +200,6 @@
     <div id="bloc-rub"><label class="lb" id="lb-rub">Rubrique</label><select id="f-rub"></select></div>
     <div id="bloc-tiers" style="display:none"><label class="lb" id="lb-tiers">Fournisseur</label><select id="f-tiers" class="ch"></select>
       <div class="note" id="note-tiers" style="margin-top:6px"></div></div>
-    <div id="bloc-libre" style="display:none">
-      <label class="lb">Compte DÉBIT (ce qui reçoit)</label><select id="f-deb"></select>
-      <label class="lb">Compte CRÉDIT (ce qui donne)</label><select id="f-cre"></select>
-    </div>
     <label class="lb">Domaine</label><div class="choix" id="c-act"></div>
     <div class="deux">
       <div><label class="lb">Date</label><input id="f-date" class="ch" type="date"></div>
@@ -232,6 +242,16 @@
       <input id="nv-grp-autre" class="ch" type="text" style="margin-top:8px;display:none" placeholder="Nom du nouveau groupe"></div>
     <p class="aide" id="nv-aide" style="margin-top:16px"></p>
     <button class="valider" onclick="validerNouveau()">Créer</button>
+  </div>
+</div>
+
+<!-- Recherche dans une liste (centre de dépense, tiers, comptes) -->
+<div class="ecran" id="picker" style="z-index:15">
+  <div class="barre"><button onclick="fermer('picker')">←</button><span id="pkTitre">Choisir</span></div>
+  <div class="corps" style="padding-top:10px">
+    <input id="pk-q" class="ch" type="search" placeholder="🔍 Tapez quelques lettres…" autocomplete="off" style="position:sticky;top:68px;z-index:1">
+    <div id="pk-creer"></div>
+    <div id="pk-liste" style="margin-top:8px"></div>
   </div>
 </div>
 
@@ -444,10 +464,12 @@ document.getElementById('caisses').addEventListener('click', function(ev){
 var VUE='accueil', GLDEPUIS='', VUES_NOMS={accueil:'Accueil', apayer:'À payer', histo:'Grand livre', soldes:'Balance', lettrage:'Lettrage'};
 try{ history.replaceState({v:'accueil'}, ''); }catch(e){}
 window.addEventListener('popstate', function(e){
-  var ouvert=document.querySelector('.ecran.on');
-  if(ouvert && ouvert.id!=='reglages'){ ouvert.className='ecran'; try{ history.pushState({v:VUE}, ''); }catch(x){} return; }
-  vue((e.state && e.state.v) || 'accueil', true);
+  var tous=document.querySelectorAll('.ecran.on'), ouvert=tous[tous.length-1];
+  if(ouvert && ouvert.id!=='reglages'){ ouvert.className='ecran'; return; }
+  var v=(e.state && e.state.v) || 'accueil';
+  if(v!==VUE) vue(v, true);
 });
+function ouvrirEcran(id){ $(id).className='ecran on'; try{ history.pushState({v:VUE, ecran:id}, ''); }catch(e){} }
 function allerGL(filtres){ GLF=Object.assign({compte:'', domaine:'', centre:'', tiers:'', du:'', au:'', tri:'date-'}, filtres); GLDEPUIS=VUE; vue('histo', false, true); }
 function vue(v, pop, garder){
   if(v==='histo' && !garder && !pop) GLDEPUIS='';
@@ -611,6 +633,7 @@ function dessinerHisto(){
   $('glFiltres').innerHTML=fh;
   if($('glRetour')) $('glRetour').onclick=function(){ history.back(); };
   $('glFiltres').querySelectorAll('[data-glf]').forEach(function(el){ el.onchange=function(){ GLF[el.dataset.glf]=el.value; GLMAX=200; dessinerHisto(); }; });
+  rendreCherchables($('glFiltres'));
   if($('glRaz')) $('glRaz').onclick=function(){ GLF={compte:'', domaine:'', centre:'', tiers:'', du:'', au:'', tri:GLF.tri}; dessinerHisto(); };
 
   var estType=function(o,nom,t){ return (o.debit===nom||o.credit===nom); };
@@ -693,7 +716,7 @@ function detail(o, action){
   document.getElementById('btnSuppr').onclick=supprimer;
   if(action) document.getElementById('btnAction').onclick=action.fn;
   document.getElementById('btnModif').onclick=function(){ fermer('detail'); ouvrirForm('aut', o); };
-  document.getElementById('detail').className='ecran on';
+  ouvrirEcran('detail');
 }
 function supprimer(){
   var o=DETAIL; if(!o) return;
@@ -725,7 +748,7 @@ var CONF={
   reg:{titre:'Payer une dette', coul:'#6B4E9B', lbCaisse:'Payé avec la caisse', lbTiers:'Fournisseur à régler', grp:'Fournisseur'},
   enc:{titre:'Encaisser un client', coul:'#1F7A6B', lbCaisse:'Encaissé dans la caisse', lbTiers:'Client', grp:'Client'},
   tra:{titre:'Transfert entre caisses', coul:'var(--bleu)', lbCaisse:'De la caisse'},
-  aut:{titre:'Autre écriture', coul:'var(--vert)'}
+  aut:{titre:'Écriture', coul:'var(--bleu)', lbCaisse:'Caisse ou banque', lbTard:'Caisse ou banque prévue'}
 };
 function activiteDe(caisse){
   var c=norm(caisse), best='';
@@ -763,7 +786,7 @@ function ouvrirForm(type, edit){
   var EDIT=edit||null;
   var caisses=D.caisses.map(function(c){return c.nom;});
   var dern=lire(CLE_DERN,'');
-  F={type:type, caisse: caisses.indexOf(dern)>=0 ? dern : (caisses.filter(function(c){return /caisse/i.test(c);})[0]||caisses[0]||''), vers:'', quand:'now'};
+  F={type:type, caisse: caisses.indexOf(dern)>=0 ? dern : (caisses.filter(function(c){return /caisse/i.test(c);})[0]||caisses[0]||''), vers:'', quand:'now', mvt:'non'};
   if(type==='tra') F.vers=caisses.filter(function(c){return c!==F.caisse;})[0]||'';
   F.activite = type==='tra' ? (D.activites.indexOf('Général')>=0?'Général':activiteDe(F.vers)) : activiteDe(F.caisse);
   var c=CONF[type];
@@ -779,7 +802,7 @@ function ouvrirForm(type, edit){
   $('bloc-quand').style.display = (type==='dep'||type==='rec') ? '' : 'none';
   if(c.lbEch) $('lb-ech').textContent=c.lbEch;
   if(type==='dep'||type==='rec') remplirRub('');
-  if(type==='aut'){ options($('f-deb'), D.comptes); options($('f-cre'), D.comptes); }
+  if(type==='aut') remplirLibres('','');
   ['f-montant','f-lib','f-piece','f-ech'].forEach(function(id){ $(id).value=''; });
   $('f-date').value=aujourdhui();
   $('btnValider').disabled=false;
@@ -799,9 +822,26 @@ function ouvrirForm(type, edit){
     if(D.activites.indexOf(F.activite)<0 && F.activite) D.activites=D.activites.concat([F.activite]);
   }
   majChoix(); majVisibilite();
-  $('form').className='ecran on';
+  ouvrirEcran('form');
   setTimeout(function(){ $('f-montant').focus(); },150);
 }
+function remplirLibres(deb, cre){
+  ['f-deb','f-cre'].forEach(function(id, i){
+    options($(id), D.comptes);
+    $(id).insertAdjacentHTML('beforeend','<option value="+">＋ Nouveau compte…</option>');
+    $(id).value = (i ? cre : deb) || '';
+  });
+}
+['f-deb','f-cre'].forEach(function(id){
+  $(id).addEventListener('change', function(){
+    if(this.value!=='+') return;
+    var autre = id==='f-deb' ? $('f-cre').value : $('f-deb').value;
+    ouvrirNouveau('compte', function(n){
+      if(id==='f-deb') remplirLibres(n, autre); else remplirLibres(autre, n);
+      majVisibilite();
+    }, function(){ $(id).value=''; majVisibilite(); });
+  });
+});
 function remplirRub(val){
   var dep=F.type==='dep';
   options($('f-rub'), dep?D.charges:D.produits);
@@ -820,23 +860,40 @@ function remplirTiers(val){
   $('lb-tiers').textContent=c.lbTiers;
 }
 function tiersChoisi(){ var v=$('f-tiers').value; return v==='+' ? '' : v; }
+function entree(){ return F.type==='rec' || (F.type==='aut' && F.mvt==='enc'); }
 function majQuand(){
   $('q-now').className = F.quand==='now' ? 'on' : '';
   $('q-tard').className = F.quand==='tard' ? 'on' : '';
-  $('q-now').textContent = F.type==='rec' ? 'Encaissée maintenant' : 'Payée maintenant';
-  $('q-tard').textContent = F.type==='rec' ? 'À encaisser plus tard' : 'À payer plus tard';
+  $('q-now').textContent = entree() ? 'Encaissé maintenant' : 'Payé maintenant';
+  $('q-tard').textContent = entree() ? 'À encaisser plus tard' : 'À payer plus tard';
+  document.querySelectorAll('#bloc-mvt [data-m]').forEach(function(b){ b.className = F.mvt===b.dataset.m ? 'on' : ''; });
 }
+document.querySelector('#bloc-mvt .quand').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-m]'); if(!b) return;
+  F.mvt=b.dataset.m; majQuand(); majVisibilite();
+});
 document.querySelector('#bloc-quand .quand').addEventListener('click', function(ev){
   var b=ev.target.closest('[data-q]'); if(!b) return;
   F.quand=b.dataset.q; majQuand(); majVisibilite();
   if(F.quand==='tard' && !$('f-ech').value) $('f-ech').focus();
 });
-function plusTard(){ return (F.type==='dep'||F.type==='rec') && F.quand==='tard'; }
+function avecMvt(){ return F.type==='aut' && F.mvt!=='non' && !F.edit; }
+function plusTard(){ return ((F.type==='dep'||F.type==='rec') || avecMvt()) && F.quand==='tard'; }
 function majVisibilite(){
+  majPickers();
   var t=F.type, tiers=CONF[t].lbTiers ? tiersChoisi() : '', tard=plusTard();
+  $('bloc-mvt').style.display = (t==='aut' && !F.edit) ? '' : 'none';
+  $('bloc-quand').style.display = (t==='dep'||t==='rec'||avecMvt()) ? '' : 'none';
   $('bloc-ech').style.display = tard ? '' : 'none';
-  $('bloc-caisse').style.display = t!=='aut' ? '' : 'none';
-  if(CONF[t].lbCaisse) $('lb-caisse').textContent = tard ? CONF[t].lbTard : CONF[t].lbCaisse;
+  $('lb-ech').textContent = entree() ? 'À encaisser le' : 'À payer le';
+  $('bloc-caisse').style.display = (t!=='aut' || avecMvt()) ? '' : 'none';
+  if(CONF[t].lbCaisse) $('lb-caisse').textContent = t==='aut' ? (tard ? (entree()?'Sera encaissé dans':'Sera payé avec') : (entree()?'Encaissé dans (caisse ou banque)':'Payé avec (caisse ou banque)')) : (tard ? CONF[t].lbTard : CONF[t].lbCaisse);
+  if(t==='aut'){
+    var cpt = F.mvt==='pai' ? $('f-cre').value : F.mvt==='enc' ? $('f-deb').value : '';
+    var estTiers = D.tiers.some(function(c){return c.nom===cpt;});
+    $('note-mvt').textContent = F.mvt==='pai' ? 'Le compte CRÉDIT ('+(cpt&&cpt!=='+'?cpt:'…')+') sera réglé par la caisse ou banque choisie.'+(tard&&cpt&&!estTiers?' Pour le suivre dans « À payer », choisissez un tiers au crédit.':'') :
+      F.mvt==='enc' ? 'Le compte DÉBIT ('+(cpt&&cpt!=='+'?cpt:'…')+') sera encaissé dans la caisse ou banque choisie.'+(tard&&cpt&&!estTiers?' Pour le suivre dans « À encaisser », choisissez un tiers au débit.':'') : 'Écriture seule, sans sortie ni entrée d\'argent.';
+  }
   var note='';
   if(tiers) note = soldeTiersTxt(tiers);
   else if(tard) note = 'Sans '+(t==='dep'?'fournisseur':'client')+', elle sera notée dans « '+CONF[t].divers+' ».';
@@ -860,6 +917,77 @@ function majChoix(){
     F.activite=v; majChoix(); }, 'Domaine');
   resume();
 }
+/* =========================================================
+   Listes avec recherche : un bouton remplace la liste déroulante ;
+   on tape quelques lettres pour filtrer, ou on crée un nouveau nom.
+   ========================================================= */
+var PK_NOM='', PK_SEL=null, PICKERS={'f-rub':function(){return $('lb-rub').textContent;}, 'f-tiers':function(){return $('lb-tiers').textContent;}, 'f-deb':function(){return 'Compte DÉBIT';}, 'f-cre':function(){return 'Compte CRÉDIT';}};
+Object.keys(PICKERS).forEach(function(id){
+  var sel=$(id); sel.style.display='none';
+  sel.insertAdjacentHTML('afterend','<button type="button" class="ch pk-btn vide" id="pkb-'+id+'">— choisir —</button>');
+  $('pkb-'+id).onclick=function(){ ouvrirPicker($(id), PICKERS[id]()); };
+});
+function majPickers(){
+  Object.keys(PICKERS).forEach(function(id){
+    var sel=$(id), b=$('pkb-'+id), o=sel.options[sel.selectedIndex];
+    var txt = (o && o.value && o.value!=='+') ? o.textContent : (o && !o.value ? o.textContent : '— choisir —');
+    b.textContent=txt; b.className='ch pk-btn'+((o && o.value && o.value!=='+')?'':' vide');
+  });
+}
+/* rend cherchable une liste créée à la volée (filtres du grand livre et de la balance) */
+function rendreCherchables(zone){
+  zone.querySelectorAll('select[data-glf], select[data-bf]').forEach(function(sel){
+    var k=sel.dataset.glf||sel.dataset.bf; if(k==='tri'||k==='vue') return;
+    if(sel.options.length<8) return;
+    var lb=sel.parentNode.querySelector('label'), titre=lb?lb.textContent:'Choisir';
+    sel.style.display='none';
+    var o=sel.options[sel.selectedIndex], b=document.createElement('button');
+    b.type='button'; b.className='pk-btn'+(sel.value?'':' vide'); b.textContent=o?o.textContent:'Tous';
+    b.style.cssText='width:100%;font-size:15px;padding:10px;border:1px solid var(--trait);border-radius:10px;background:#fff;color:'+(sel.value?'var(--texte)':'var(--gris)');
+    b.onclick=function(){ ouvrirPicker(sel, titre); };
+    sel.parentNode.appendChild(b);
+  });
+}
+function ouvrirPicker(sel, titre){
+  PK_SEL=sel; $('pkTitre').textContent=String(titre).replace(/\s*\(facultatif\)/,'');
+  $('pk-q').value=''; dessinerPicker();
+  ouvrirEcran('picker'); $('picker').scrollTop=0;
+  setTimeout(function(){ $('pk-q').focus(); },150);
+}
+function dessinerPicker(){
+  var sel=PK_SEL, q=norm($('pk-q').value), mots=q?q.split(' '):[];
+  var items=[], peutCreer=false, vide=null;
+  Array.prototype.forEach.call(sel.options, function(o){
+    if(o.value==='+'){ peutCreer=true; return; }
+    if(!o.value){ vide=o.textContent; return; }
+    var g=o.parentNode.tagName==='OPTGROUP' ? o.parentNode.label : '';
+    var n=norm(o.value);
+    if(mots.every(function(m){ return n.indexOf(m)>=0; })) items.push({v:o.value, g:g});
+  });
+  var exact=items.some(function(x){ return norm(x.v)===q; });
+  var h='';
+  if(peutCreer) h='<button class="plus-btn" id="pkCreer" style="margin-top:10px">＋ Créer '+(q&&!exact?'« '+esc($('pk-q').value.trim())+' »':'un nouveau…')+'</button>';
+  $('pk-creer').innerHTML=h;
+  var L='';
+  if(vide!==null && !q) L+='<button class="pk-it'+(!sel.value?' on':'')+'" data-pk="">'+esc(vide)+'</button>';
+  var gAct=null;
+  items.forEach(function(x){
+    if(x.g!==gAct){ gAct=x.g; if(x.g) L+='<div class="pk-g">'+esc(x.g)+'</div>'; }
+    var t=esc(x.v);
+    mots.forEach(function(m){ if(!m) return; var i=norm(x.v).indexOf(m); if(i>=0 && norm(x.v).length===x.v.length) t=esc(x.v.slice(0,i))+'<b>'+esc(x.v.slice(i,i+m.length))+'</b>'+esc(x.v.slice(i+m.length)); });
+    L+='<button class="pk-it'+(sel.value===x.v?' on':'')+'" data-pk="'+esc(x.v)+'">'+t+'</button>';
+  });
+  if(!items.length) L+='<div class="vide">Aucun nom ne contient « '+esc($('pk-q').value)+' ».'+(peutCreer?' Utilisez « Créer » ci-dessus.':'')+'</div>';
+  $('pk-liste').innerHTML=L;
+  $('pk-liste').querySelectorAll('[data-pk]').forEach(function(b){ b.onclick=function(){
+    sel.value=b.dataset.pk; fermer('picker'); sel.dispatchEvent(new Event('change')); majVisibilite(); }; });
+  if($('pkCreer')) $('pkCreer').onclick=function(){
+    PK_NOM=exact?'':$('pk-q').value.trim(); fermer('picker');
+    sel.value='+'; sel.dispatchEvent(new Event('change')); };
+}
+$('pk-q').addEventListener('input', dessinerPicker);
+$('pk-q').addEventListener('keydown', function(e){ if(e.key==='Enter'){ var b=$('pk-liste').querySelector('[data-pk]:not([data-pk=""])'); if(b) b.click(); } });
+
 /* Les écritures que va créer le formulaire */
 function ecritures(){
   var t=F.type, m=lireMontant(), rub=$('f-rub').value, tiers=tiersChoisi(), tard=plusTard(), out=[], lettrer='';
@@ -876,14 +1004,21 @@ function ecritures(){
   } else if(t==='reg') out.push({debit:tiers, credit:F.caisse, montant:m, role:'reglement'});
   else if(t==='enc') out.push({debit:F.caisse, credit:tiers, montant:m, role:'reglement'});
   else if(t==='tra') out.push({debit:F.vers, credit:F.caisse, montant:m, role:'transfert'});
-  else out.push({debit:$('f-deb').value, credit:$('f-cre').value, montant:m, role:'libre'});
+  else {
+    var deb=$('f-deb').value, cre=$('f-cre').value; if(deb==='+') deb=''; if(cre==='+') cre='';
+    out.push({debit:deb, credit:cre, montant:m, role:avecMvt()&&tard?'facture':'libre'});
+    if(avecMvt() && !tard){
+      if(F.mvt==='pai'){ out.push({debit:cre, credit:F.caisse, montant:m, role:'reglement'}); if(D.tiers.some(function(c){return c.nom===cre;})) lettrer=cre; }
+      else { out.push({debit:F.caisse, credit:deb, montant:m, role:'reglement'}); if(D.tiers.some(function(c){return c.nom===deb;})) lettrer=deb; }
+    }
+  }
   return {lignes:out, lettrer:lettrer};
 }
 function resume(){
   var r=ecritures();
   $('resume').innerHTML = r.lignes.map(function(e,i){
     return (r.lignes.length>1 ? '<b>'+(i+1)+'.</b> ' : 'Écriture : ')+'<b>Débit</b> '+esc(e.debit||'…')+' &nbsp;/&nbsp; <b>Crédit</b> '+esc(e.credit||'…')+(e.montant>0?' &nbsp;·&nbsp; <b>'+mad(e.montant)+'</b>':'');
-  }).join('<br>') + (F.activite?'<br>Domaine : '+esc(F.activite):'') + (r.lettrer?'<br>✓ Facture et règlement seront lettrés ensemble.':'') + (plusTard()?'<br>⌛ '+(F.type==='rec'?'À encaisser':'À payer')+' le <b>'+(echSaisie()?dateFr(echSaisie()):'(date non choisie)')+'</b> avec <b>'+esc(F.caisse)+'</b>':'');
+  }).join('<br>') + (F.activite?'<br>Domaine : '+esc(F.activite):'') + (r.lettrer?'<br>✓ Facture et règlement seront lettrés ensemble.':'') + (plusTard()?'<br>⌛ '+(entree()?'À encaisser':'À payer')+' le <b>'+(echSaisie()?dateFr(echSaisie()):'(date non choisie)')+'</b> avec <b>'+esc(F.caisse)+'</b>':'');
 }
 ['f-montant','f-rub','f-deb','f-cre'].forEach(function(id){
   var el=$(id); el.addEventListener('input',majVisibilite); el.addEventListener('change',majVisibilite);
@@ -909,7 +1044,9 @@ function valider(){
   var lib=$('f-lib').value.trim(), date=$('f-date').value||aujourdhui(), piece=$('f-piece').value.trim(), h=new Date().toISOString();
   var lignes=r.lignes.map(function(e){
     var l=lib;
-    if(e.role==='facture'){ l = lib || (t==='dep' ? e.debit : e.credit); if(plusTard()) l += ' · éch. '+dateFr(echSaisie())+' · via '+F.caisse; }
+    if(e.role==='facture'){ l = lib || (t==='dep' ? e.debit : t==='rec' ? e.credit : (F.mvt==='pai'?e.debit:e.credit)); if(plusTard()) l += ' · éch. '+dateFr(echSaisie())+' · via '+F.caisse; }
+    else if(e.role==='libre') l = lib || (e.debit+' / '+e.credit);
+    else if(e.role==='reglement' && t==='aut') l = (F.mvt==='pai' ? 'Paiement ' : 'Encaissement ')+(F.mvt==='pai'?e.debit:e.credit)+(lib?' · '+lib:'');
     else if(e.role==='reglement') l = (t==='dep'||t==='reg' ? 'Règlement ' : 'Encaissement ')+tiers+(lib?' · '+lib:'');
     else if(e.role==='comptant') l = lib || (t==='dep' ? e.debit : e.credit);
     else if(e.role==='transfert') l = lib || 'Transfert '+F.caisse+' → '+F.vers;
@@ -919,7 +1056,7 @@ function valider(){
   var op = lignes.length===1 ? {id:nouvelId(), type:'ajout', e:lignes[0]} : {id:nouvelId(), type:'groupe', ecritures:lignes, lettrer:r.lettrer};
   $('btnValider').disabled=true;
   // dépense ou recette à plus tard sans tiers : compte « DIVERS À PAYER / À ENCAISSER », créé s'il n'existe pas
-  if(plusTard() && !tiers && !D.comptes.some(function(c){return c.nom===CONF[t].divers;}))
+  if((t==='dep'||t==='rec') && plusTard() && !tiers && !D.comptes.some(function(c){return c.nom===CONF[t].divers;}))
     FILE.push({id:nouvelId(), type:'compte', nom:CONF[t].divers, typeCompte:'Tiers', groupe:CONF[t].grp});
   FILE.push(op);
   if(!ecrire(CLE_FILE, FILE)){ FILE.pop(); $('btnValider').disabled=false; return; }
@@ -981,16 +1118,17 @@ function ouvrirNouveau(kind, ok, annule){
     caisse:{titre:'Nouvelle caisse ou banque', type:'Trésorerie', lb:'Type', groupes:['Caisse','Banque'], aide:'Elle apparaîtra dans « Mes caisses » avec un solde de 0. Pour mettre l\'argent de départ, faites un transfert ou une écriture « Autre ».'},
     charge:{titre:'Nouveau centre de dépense', type:'Charge', lb:'Groupe', groupes:groupesDe(D.charges), autre:true, aide:'Le centre de dépense sera ajouté dans l\'onglet Comptes du Sheet.'},
     produit:{titre:'Nouvelle catégorie de recette', type:'Produit', lb:'Groupe', groupes:groupesDe(D.produits), autre:true, aide:''},
+    compte:{titre:'Nouveau compte', type:'?', lb:'Type de compte', groupes:['Caisse','Banque','Fournisseur','Client','Avance','Dépense','Recette'], aide:'Caisse / Banque : argent disponible. Fournisseur / Client / Avance : tiers. Dépense : centre de dépense. Recette : catégorie de recette.'},
     domaine:{titre:'Nouveau domaine', type:'', aide:'Le domaine sera ajouté à la liste des domaines (onglet Comptes, colonne H). Chaque opération est rattachée à un domaine.'}
   }[kind];
   if(K.groupes && !K.groupes.length) K.groupes=[K.type==='Charge'?'Ferme':'Ventes'];
   NV={kind:kind, K:K, ok:ok, annule:annule, groupe:(K.groupes&&K.groupes[0])||''};
   if(kind==='tiers' && F.type && CONF[F.type] && CONF[F.type].grp==='Client') NV.groupe='Client';
-  $('nvTitre').textContent=K.titre; $('nv-nom').value=''; $('nv-grp-autre').value=''; $('nv-grp-autre').style.display='none';
+  $('nvTitre').textContent=K.titre; $('nv-nom').value=PK_NOM||''; PK_NOM=''; $('nv-grp-autre').value=''; $('nv-grp-autre').style.display='none';
   $('nv-aide').textContent=K.aide||'';
   $('nv-bloc-grp').style.display=K.groupes?'':'none';
   if(K.groupes){ $('nv-lb-grp').textContent=K.lb; dessinerGroupesNv(); }
-  $('nouveau').className='ecran on';
+  ouvrirEcran('nouveau');
   setTimeout(function(){ $('nv-nom').focus(); },150);
 }
 function dessinerGroupesNv(){
@@ -1011,7 +1149,13 @@ function validerNouveau(){
     if(D.comptes.some(function(c){return c.nom.toLowerCase()===nom.toLowerCase();})) return toast('Ce nom existe déjà dans vos comptes', true);
     var grp = NV.autreOn ? $('nv-grp-autre').value.trim() : NV.groupe;
     if(!grp) return toast('Choisissez le groupe', true);
-    FILE.push({id:nouvelId(), type:'compte', nom:nom, typeCompte:NV.K.type, groupe:grp});
+    var typeC = NV.K.type;
+    if(typeC==='?'){
+      typeC = {Caisse:'Trésorerie', Banque:'Trésorerie', Fournisseur:'Tiers', Client:'Tiers', Avance:'Tiers', 'Dépense':'Charge', Recette:'Produit'}[grp];
+      if(typeC==='Charge') grp = groupesDe(D.charges)[0] || 'Ferme';
+      if(typeC==='Produit') grp = groupesDe(D.produits)[0] || 'Ventes';
+    }
+    FILE.push({id:nouvelId(), type:'compte', nom:nom, typeCompte:typeC, groupe:grp});
   }
   ecrire(CLE_FILE, FILE);
   var f=F, ok=NV.ok; NV=null; calculer(); F=f;
@@ -1234,6 +1378,7 @@ function dessinerBalance(z, bascule){
     else { var y=Number(BF.mois.slice(0,4)), m=Number(BF.mois.slice(5))-1+d; y+=Math.floor(m/12); m=((m%12)+12)%12; BF.mois=y+'-'+deux(m+1); }
     dessinerSoldes(); }; });
   z.querySelectorAll('[data-bf]').forEach(function(el){ el.onchange=function(){ BF[el.dataset.bf]=el.value; dessinerSoldes(); }; });
+  rendreCherchables(z);
   z.querySelectorAll('[data-bc]').forEach(function(b){ b.onclick=function(){
     allerGL({compte:b.dataset.bc, domaine:BF.domaine, centre:BF.centre, tiers:BF.tiers, du:du, au:au, tri:'date+'}); }; });
   if(BF.domaine||BF.centre||BF.tiers){ z.querySelector('.glf').insertAdjacentHTML('afterend','<button class="plus-btn nonimp" id="balRaz">Effacer les filtres</button>');
