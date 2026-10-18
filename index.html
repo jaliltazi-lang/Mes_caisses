@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F5C3A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mes caisses</title>
+<style>
+  :root{
+    --vert:#1F5C3A; --vert2:#2E7D50; --vertc:#E8F2EC;
+    --rouge:#C0392B; --bleu:#2C5E8C; --orange:#B9770E; --orangec:#FDF2E0;
+    --fond:#F4F6F4; --carte:#FFFFFF; --texte:#1D241F; --gris:#6B746E; --trait:#DDE3DE;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--fond);color:var(--texte);
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:16px}
+  button{font-family:inherit;cursor:pointer}
+  .haut{background:var(--vert);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 40px}
+  .haut .t{font-size:14px;opacity:.85}
+  .haut .total{font-size:32px;font-weight:700;margin-top:2px;letter-spacing:-.5px}
+  .haut .ligne{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .rond{background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:50%;width:40px;height:40px;font-size:19px;flex:none}
+  .etat{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:20px;padding:6px 12px;font-size:13px}
+  .etat i{width:9px;height:9px;border-radius:50%;background:#7CDB9E;display:inline-block}
+  .etat.attente i{background:#F5C451} .etat.horsligne i{background:#C9CFCA} .etat.erreur i{background:#FF8A7A}
+  main{padding:0 16px 100px;max-width:560px;margin:0 auto}
+  h2{font-size:14px;color:var(--gris);font-weight:600;margin:22px 2px 8px;text-transform:uppercase;letter-spacing:.4px}
+  .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:-26px}
+  .act{border:0;border-radius:16px;padding:16px 6px;font-size:16px;font-weight:700;color:#fff;
+    box-shadow:0 3px 10px rgba(0,0,0,.12);display:flex;flex-direction:column;align-items:center;gap:4px}
+  .act .ic{font-size:26px;line-height:1}
+  .act.dep{background:var(--rouge)} .act.rec{background:var(--vert2)} .act.tra{background:var(--bleu)}
+  .autre{display:block;margin:10px auto 0;background:none;border:0;color:var(--gris);font-size:14px;text-decoration:underline}
+  .caisses{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .caisse{background:var(--carte);border-radius:14px;padding:12px;border:1px solid var(--trait);text-align:left;color:var(--texte)}
+  .caisse .n{font-size:14px;color:var(--gris)} .caisse .s{font-size:19px;font-weight:700;margin-top:4px}
+  .neg{color:var(--rouge)!important}
+  .tab{background:var(--carte);border-radius:14px;border:1px solid var(--trait);overflow:hidden}
+  .tab .r{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;padding:10px 12px;border-top:1px solid var(--trait);font-size:14px}
+  .tab .r:first-child{border-top:0;background:var(--vertc);font-weight:600;color:var(--vert)}
+  .tab .r span:not(:first-child){text-align:right}
+  .vide{color:var(--gris);text-align:center;padding:18px;font-size:14px}
+  .note{font-size:12px;color:var(--gris);margin:8px 2px 0}
+  nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--trait);display:flex;z-index:5;padding-bottom:env(safe-area-inset-bottom)}
+  nav button{flex:1;background:none;border:0;padding:12px 0 14px;font-size:13px;color:var(--gris)}
+  nav button .i{display:block;font-size:22px}
+  nav button.on{color:var(--vert);font-weight:700}
+  .filtres{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+  .chip{flex:none;border:1px solid var(--trait);background:#fff;border-radius:20px;padding:8px 14px;font-size:14px;color:var(--texte)}
+  .chip.on{background:var(--vert);border-color:var(--vert);color:#fff}
+  .op{background:var(--carte);border:1px solid var(--trait);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;color:var(--texte)}
+  .op.att{border-style:dashed;border-color:#E2B85C;background:#FFFCF4}
+  .op.err{border-color:var(--rouge);background:#FDF0EE}
+  .op .l1{font-weight:600;font-size:15px} .op .l2{font-size:13px;color:var(--gris);margin-top:3px}
+  .op .l3{font-size:12px;margin-top:4px;font-weight:600}
+  .op.att .l3{color:var(--orange)} .op.err .l3{color:var(--rouge)}
+  .op .m{font-weight:700;white-space:nowrap;font-size:16px}
+  .m.dep{color:var(--rouge)} .m.rec{color:var(--vert2)} .m.tra{color:var(--bleu)}
+  .ecran{position:fixed;inset:0;background:var(--fond);z-index:10;overflow-y:auto;display:none}
+  .ecran.on{display:block}
+  .ecran .barre{position:sticky;top:0;color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700;z-index:2;background:var(--vert)}
+  .ecran .barre button{background:rgba(255,255,255,.18);border:0;color:#fff;width:38px;height:38px;border-radius:50%;font-size:20px;flex:none}
+  .corps{padding:16px;max-width:560px;margin:0 auto 40px}
+  .montant{width:100%;font-size:36px;font-weight:700;text-align:center;border:0;border-bottom:3px solid var(--trait);background:transparent;padding:10px 0;outline:none;color:var(--texte)}
+  .montant:focus{border-color:var(--vert)}
+  .unite{text-align:center;color:var(--gris);font-size:14px;margin-top:4px}
+  label.lb{display:block;font-size:13px;color:var(--gris);font-weight:600;margin:18px 2px 8px;text-transform:uppercase;letter-spacing:.3px}
+  .choix{display:flex;flex-wrap:wrap;gap:8px}
+  select,input.ch{width:100%;font-size:16px;padding:13px 12px;border:1px solid var(--trait);border-radius:12px;background:#fff;color:var(--texte)}
+  .deux{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .valider{width:100%;margin-top:26px;border:0;border-radius:14px;padding:17px;font-size:18px;font-weight:700;color:#fff;background:var(--vert)}
+  .valider:disabled{opacity:.5}
+  .resume{margin-top:18px;background:#fff;border:1px dashed var(--trait);border-radius:12px;padding:12px;font-size:14px;color:var(--gris);line-height:1.5}
+  .resume b{color:var(--texte)}
+  .detail .ligne2{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--trait);font-size:15px;gap:12px}
+  .detail .ligne2 span:first-child{color:var(--gris)}
+  .detail .ligne2 span:last-child{text-align:right;font-weight:600;word-break:break-word}
+  .bandeau{border-radius:12px;padding:12px;font-size:14px;margin-bottom:8px;line-height:1.45}
+  .bandeau.att{background:var(--orangec);color:#7a4e06} .bandeau.err{background:#FDF0EE;color:var(--rouge)}
+  .suppr{width:100%;margin-top:26px;border:1px solid var(--rouge);color:var(--rouge);background:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:700}
+  .aide{font-size:14px;color:var(--gris);line-height:1.5}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1D241F;color:#fff;padding:12px 18px;border-radius:24px;font-size:15px;z-index:40;display:none;max-width:90%;text-align:center}
+  .toast.err{background:var(--rouge)}
+</style>
+</head>
+<body>
+
+<div class="haut">
+  <div class="ligne">
+    <div>
+      <div class="t">Total de vos caisses</div>
+      <div class="total" id="total">—</div>
+    </div>
+    <button class="rond" onclick="ouvrirReglages()" aria-label="Réglages">⚙</button>
+  </div>
+  <button class="etat" id="etat" onclick="synchroniser(true)"><i></i><span id="etatTxt">…</span></button>
+</div>
+
+<main>
+  <section id="v-accueil">
+    <div class="actions">
+      <button class="act dep" onclick="ouvrirForm('dep')"><span class="ic">−</span>Dépense</button>
+      <button class="act rec" onclick="ouvrirForm('rec')"><span class="ic">+</span>Recette</button>
+      <button class="act tra" onclick="ouvrirForm('tra')"><span class="ic">⇄</span>Transfert</button>
+    </div>
+    <button class="autre" onclick="ouvrirForm('aut')">Autre écriture (débit / crédit libres)</button>
+
+    <h2>Mes caisses</h2>
+    <div class="caisses" id="caisses"></div>
+
+    <h2 id="titreMois">Ce mois-ci par activité</h2>
+    <div class="tab" id="mois"></div>
+    <div class="note" id="noteMaj"></div>
+  </section>
+
+  <section id="v-histo" style="display:none">
+    <h2>Opérations</h2>
+    <div class="filtres" id="filtres"></div>
+    <div id="liste" style="margin-top:8px"></div>
+  </section>
+</main>
+
+<nav>
+  <button id="n-accueil" class="on" onclick="vue('accueil')"><span class="i">⌂</span>Accueil</button>
+  <button id="n-histo" onclick="vue('histo')"><span class="i">☰</span>Historique</button>
+</nav>
+
+<!-- Formulaire de saisie -->
+<div class="ecran" id="form">
+  <div class="barre" id="formBarre"><button onclick="fermer('form')">←</button><span id="formTitre">Dépense</span></div>
+  <div class="corps">
+    <input id="f-montant" class="montant" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+    <div class="unite">MAD</div>
+    <div id="bloc-caisse"><label class="lb" id="lb-caisse">Payé avec</label><div class="choix" id="c-caisse"></div></div>
+    <div id="bloc-vers" style="display:none"><label class="lb">Vers la caisse</label><div class="choix" id="c-vers"></div></div>
+    <div id="bloc-rub"><label class="lb" id="lb-rub">Rubrique</label><select id="f-rub"></select></div>
+    <div id="bloc-libre" style="display:none">
+      <label class="lb">Compte DÉBIT (ce qui reçoit)</label><select id="f-deb"></select>
+      <label class="lb">Compte CRÉDIT (ce qui donne)</label><select id="f-cre"></select>
+    </div>
+    <label class="lb">Activité</label><div class="choix" id="c-act"></div>
+    <div class="deux">
+      <div><label class="lb">Date</label><input id="f-date" class="ch" type="date"></div>
+      <div><label class="lb">N° pièce</label><input id="f-piece" class="ch" type="text" placeholder="auto"></div>
+    </div>
+    <label class="lb">Libellé</label>
+    <input id="f-lib" class="ch" type="text" placeholder="ex : gasoil tracteur">
+    <div class="resume" id="resume"></div>
+    <button class="valider" id="btnValider" onclick="valider()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- Détail d'une opération -->
+<div class="ecran" id="detail">
+  <div class="barre"><button onclick="fermer('detail')">←</button><span>Détail de l'opération</span></div>
+  <div class="corps detail" id="detailCorps"></div>
+</div>
+
+<!-- Réglages -->
+<div class="ecran" id="reglages">
+  <div class="barre"><button id="btnFermerReglages" onclick="fermer('reglages')">←</button><span>Connexion au Google Sheet</span></div>
+  <div class="corps">
+    <p class="aide">Collez l'adresse du script de votre Google Sheet (elle se termine par <b>/exec</b>) et le code secret que vous avez écrit dans le script.</p>
+    <label class="lb">Adresse du script</label>
+    <input id="r-url" class="ch" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+    <label class="lb">Code secret</label>
+    <input id="r-cle" class="ch" type="password" autocomplete="off">
+    <button class="valider" id="btnTester" onclick="testerConnexion()">Tester et enregistrer</button>
+    <p class="aide" id="r-info" style="margin-top:18px"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   Stockage dans le téléphone
+   ========================================================= */
+var CLE_CFG='mc_cfg', CLE_CACHE='mc_donnees', CLE_FILE='mc_file', CLE_DERN='mc_derniere_caisse';
+function lire(k, def){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function ecrire(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ toast('Mémoire du téléphone pleine : impossible d\'enregistrer.', true); return false; } }
+
+var CFG   = lire(CLE_CFG, null);       // {url, cle}
+var CACHE = lire(CLE_CACHE, null);     // dernières données reçues du Sheet
+var FILE  = lire(CLE_FILE, []);        // opérations en attente d'envoi
+var D = null;                          // données affichées (Sheet + attente)
+var enCours=false, derniereErreur='', filtre='Toutes', F={};
+
+if (navigator.storage && navigator.storage.persist) { try{ navigator.storage.persist(); }catch(e){} }
+
+/* =========================================================
+   Format
+   ========================================================= */
+function mad(n){ return (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2})+' MAD'; }
+function fmtc(n){ return (Number(n)||0).toLocaleString('fr-FR',{maximumFractionDigits:0}); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function norm(s){ return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim(); }
+function deux(n){ return String(n).padStart(2,'0'); }
+function aujourdhui(){ var d=new Date(); return d.getFullYear()+'-'+deux(d.getMonth()+1)+'-'+deux(d.getDate()); }
+function moisCourant(){ var d=new Date(); return d.getFullYear()+'-'+deux(d.getMonth()+1); }
+function dateFr(s){ if(!s) return ''; var p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function heure(iso){ if(!iso) return ''; var d=new Date(iso); return isNaN(d)?'':deux(d.getHours())+':'+deux(d.getMinutes()); }
+function nouvelId(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2); }
+function toast(msg, err){
+  var t=document.getElementById('toast'); t.textContent=msg; t.className='toast'+(err?' err':''); t.style.display='block';
+  clearTimeout(toast._t); toast._t=setTimeout(function(){t.style.display='none';}, err?5000:2200);
+}
+
+/* =========================================================
+   Données affichées = dernier état du Sheet + opérations en attente
+   ========================================================= */
+function calculer(){
+  if(!CACHE){ D=null; return; }
+  var typeDe={}; CACHE.comptes.forEach(function(c){ typeDe[c.nom]=c.type; });
+  var soldes={}; CACHE.caisses.forEach(function(c){ soldes[c.nom]=c.solde; });
+  var mc=moisCourant();
+  var mois = CACHE.cleMois===mc ? JSON.parse(JSON.stringify(CACHE.mois||{})) : {};
+  var recents = CACHE.recents.map(function(o){ var x=Object.assign({},o); x.typeDebit=typeDe[o.debit]||''; x.typeCredit=typeDe[o.credit]||''; return x; });
+
+  function effet(e, signe){
+    var m=Number(e.montant)*signe;
+    if(e.debit in soldes) soldes[e.debit]+=m;
+    if(e.credit in soldes) soldes[e.credit]-=m;
+    if(String(e.date).slice(0,7)===mc){
+      var a=e.activite||'Sans activité'; if(!mois[a]) mois[a]={dep:0,rec:0};
+      if(typeDe[e.debit]==='Charge') mois[a].dep+=m;
+      if(typeDe[e.credit]==='Charge') mois[a].dep-=m;
+      if(typeDe[e.credit]==='Produit') mois[a].rec+=m;
+      if(typeDe[e.debit]==='Produit') mois[a].rec-=m;
+    }
+  }
+  FILE.forEach(function(op){
+    if(op.type==='ajout'){
+      if(!op.erreur) effet(op.e, 1);
+      recents.push(Object.assign({}, op.e, {id:op.id, attente:!op.erreur, erreur:op.erreur||'', typeDebit:typeDe[op.e.debit]||'', typeCredit:typeDe[op.e.credit]||''}));
+    } else if(op.type==='suppr'){
+      var i=-1; recents.forEach(function(r,k){ if(r.ligne===op.ligne) i=k; });
+      if(op.erreur){ if(i>=0){ recents[i].erreur=op.erreur; recents[i].opSuppr=op.id; } return; }
+      if(i>=0){ effet(recents[i], -1); recents.splice(i,1); }
+    }
+  });
+  recents.sort(function(x,y){
+    if(x.date!==y.date) return x.date<y.date?1:-1;
+    if(!!x.ligne!==!!y.ligne) return x.ligne?1:-1;
+    return (y.ligne||0)-(x.ligne||0);
+  });
+  D = {
+    caisses: CACHE.caisses.map(function(c){ return {nom:c.nom, solde:Math.round(soldes[c.nom]*100)/100}; }),
+    comptes: CACHE.comptes, activites: CACHE.activites,
+    charges: CACHE.comptes.filter(function(c){return c.type==='Charge';}),
+    produits: CACHE.comptes.filter(function(c){return c.type==='Produit';}),
+    mois: mois, recents: recents
+  };
+}
+
+/* =========================================================
+   Synchronisation avec le Google Sheet
+   ========================================================= */
+function appelScript(corps, cfg){
+  cfg = cfg || CFG;
+  var ctrl = ('AbortController' in window) ? new AbortController() : null;
+  var minuteur = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 45000);
+  corps.cle = cfg.cle;
+  return fetch(cfg.url, {method:'POST', body:JSON.stringify(corps), headers:{'Content-Type':'text/plain;charset=utf-8'}, redirect:'follow', signal: ctrl?ctrl.signal:undefined})
+    .then(function(r){ clearTimeout(minuteur); if(!r.ok) throw new Error('Le script a répondu '+r.status); return r.json(); })
+    .catch(function(e){ clearTimeout(minuteur); if(e && e.name==='AbortError') throw new Error('Pas de réponse (réseau trop lent)'); throw e; });
+}
+
+function synchroniser(manuel){
+  if(!CFG){ ouvrirReglages(); return; }
+  if(enCours) return;
+  if(navigator.onLine===false){ derniereErreur='horsligne'; dessinerEtat(); if(manuel) toast('Pas de réseau : vos saisies sont gardées dans le téléphone.'); return; }
+  var aEnvoyer = FILE.filter(function(op){ return !op.erreur; });
+  enCours=true; dessinerEtat();
+  aEnvoyer.forEach(function(op){ op.tente=true; }); ecrire(CLE_FILE, FILE);
+  var req = aEnvoyer.length ? {action:'sync', ops:aEnvoyer} : {action:'donnees'};
+  appelScript(req).then(function(rep){
+    if(!rep || !rep.ok) throw new Error((rep && rep.erreur) || 'Réponse inattendue du script');
+    var nbErr=0;
+    if(rep.resultats){
+      var parId={}; rep.resultats.forEach(function(r){ parId[r.id]=r; });
+      FILE = FILE.filter(function(op){
+        var r=parId[op.id]; if(!r) return true;
+        if(r.ok) return false;
+        op.erreur=r.erreur||'Refusée par le Sheet'; nbErr++; return true;
+      });
+      ecrire(CLE_FILE, FILE);
+    }
+    CACHE = rep.donnees; CACHE.recuLe = new Date().toISOString(); ecrire(CLE_CACHE, CACHE);
+    derniereErreur='';
+    enCours=false; calculer(); dessiner();
+    if(nbErr) toast(nbErr+' opération(s) refusée(s) : voir l\'historique', true);
+    else if(manuel) toast(aEnvoyer.length ? aEnvoyer.length+' opération(s) envoyée(s) ✓' : 'À jour ✓');
+  }).catch(function(e){
+    enCours=false;
+    var msg = String(e && e.message || e);
+    derniereErreur = /Code secret|Choisissez un code/.test(msg) ? msg : 'horsligne';
+    dessinerEtat();
+    if(manuel) toast(derniereErreur==='horsligne' ? 'Connexion impossible : saisies gardées dans le téléphone.' : msg, true);
+  });
+}
+
+/* =========================================================
+   Affichage
+   ========================================================= */
+function dessinerEtat(){
+  var el=document.getElementById('etat'), t=document.getElementById('etatTxt');
+  var att=FILE.filter(function(o){return !o.erreur;}).length, err=FILE.filter(function(o){return o.erreur;}).length;
+  var cls='etat', txt;
+  if(enCours) txt='Synchronisation…';
+  else if(derniereErreur && derniereErreur!=='horsligne'){ cls+=' erreur'; txt=derniereErreur; }
+  else if(derniereErreur==='horsligne' || navigator.onLine===false){ cls+=' horsligne'; txt='Hors ligne'+(att?' · '+att+' en attente':''); }
+  else if(att){ cls+=' attente'; txt=att+' en attente d\'envoi'; }
+  else txt='À jour'+(CACHE&&CACHE.recuLe?' · '+heure(CACHE.recuLe):'');
+  if(err && !enCours){ cls=cls.replace(' attente','')+' erreur'; txt+=' · '+err+' refusée(s)'; }
+  el.className=cls; t.textContent=txt;
+}
+
+function dessiner(){
+  dessinerEtat();
+  if(!D){ document.getElementById('total').textContent='—';
+    document.getElementById('caisses').innerHTML='<div class="vide" style="grid-column:1/-1">Connectez l\'appli à votre Google Sheet (bouton ⚙).</div>';
+    document.getElementById('mois').innerHTML=''; return; }
+  var tot=0;
+  document.getElementById('caisses').innerHTML = D.caisses.map(function(c){
+    tot+=c.solde;
+    return '<button class="caisse" data-caisse="'+esc(c.nom)+'"><div class="n">'+esc(c.nom)+'</div><div class="s'+(c.solde<0?' neg':'')+'">'+mad(c.solde)+'</div></button>';
+  }).join('');
+  document.getElementById('total').textContent=mad(tot);
+  var mc=moisCourant().split('-');
+  document.getElementById('titreMois').textContent='Ce mois-ci par activité ('+mc[1]+'/'+mc[0]+')';
+  var h='<div class="r"><span>Activité</span><span>Recettes</span><span>Dépenses</span><span>Résultat</span></div>', n=0;
+  Object.keys(D.mois).forEach(function(a){
+    var x=D.mois[a]; if(!x.dep && !x.rec) return; n++; var res=x.rec-x.dep;
+    h+='<div class="r"><span>'+esc(a)+'</span><span>'+fmtc(x.rec)+'</span><span>'+fmtc(x.dep)+'</span><span style="font-weight:700;color:'+(res<0?'var(--rouge)':'var(--vert2)')+'">'+fmtc(res)+'</span></div>';
+  });
+  if(!n) h+='<div class="vide">Aucune dépense ni recette ce mois-ci.</div>';
+  document.getElementById('mois').innerHTML=h;
+  document.getElementById('noteMaj').textContent = CACHE && CACHE.recuLe ? 'Soldes du Sheet reçus le '+new Date(CACHE.recuLe).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})+(FILE.length?', + vos saisies en attente.':'.') : '';
+  dessinerHisto();
+}
+document.getElementById('caisses').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-caisse]'); if(!b) return; filtre=b.dataset.caisse; dessinerHisto(); vue('histo');
+});
+
+function vue(v){
+  document.getElementById('v-accueil').style.display=v==='accueil'?'':'none';
+  document.getElementById('v-histo').style.display=v==='histo'?'':'none';
+  document.getElementById('n-accueil').className=v==='accueil'?'on':'';
+  document.getElementById('n-histo').className=v==='histo'?'on':'';
+  window.scrollTo(0,0);
+}
+function sens(o){
+  if(o.typeDebit==='Charge'||o.typeCredit==='Charge') return 'dep';
+  if(o.typeCredit==='Produit'||o.typeDebit==='Produit') return 'rec';
+  return 'tra';
+}
+var LISTE=[];
+function dessinerHisto(){
+  if(!D) return;
+  var f=['Toutes'].concat(D.caisses.map(function(c){return c.nom;}));
+  document.getElementById('filtres').innerHTML=f.map(function(x){
+    return '<button class="chip'+(x===filtre?' on':'')+'" data-f="'+esc(x)+'">'+esc(x)+'</button>';
+  }).join('');
+  LISTE=D.recents.filter(function(o){ return filtre==='Toutes'||o.debit===filtre||o.credit===filtre; });
+  if(!LISTE.length){ document.getElementById('liste').innerHTML='<div class="vide">Aucune opération.</div>'; return; }
+  document.getElementById('liste').innerHTML=LISTE.map(function(o,i){
+    var s=sens(o), signe, cls;
+    if(filtre!=='Toutes'){ signe=o.debit===filtre?'+ ':'− '; cls=o.debit===filtre?'rec':'dep'; }
+    else { signe=s==='dep'?'− ':s==='rec'?'+ ':''; cls=s; }
+    var etat = o.erreur ? '<div class="l3">⚠ Refusée : '+esc(o.erreur)+'</div>' : o.attente ? '<div class="l3">⏳ En attente d\'envoi</div>' : '';
+    return '<button class="op'+(o.erreur?' err':o.attente?' att':'')+'" data-i="'+i+'"><div><div class="l1">'+esc(o.libelle||o.debit)+'</div>'+
+      '<div class="l2">'+dateFr(o.date)+' · '+esc(o.debit)+' ← '+esc(o.credit)+'</div>'+etat+'</div>'+
+      '<div class="m '+cls+'">'+signe+mad(o.montant)+'</div></button>';
+  }).join('');
+}
+document.getElementById('filtres').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-f]'); if(!b) return; filtre=b.dataset.f; dessinerHisto();
+});
+document.getElementById('liste').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-i]'); if(!b) return; detail(LISTE[Number(b.dataset.i)]);
+});
+
+/* =========================================================
+   Détail et suppression
+   ========================================================= */
+var DETAIL=null;
+function detail(o){
+  if(!o) return; DETAIL=o;
+  var rows=[['Date',dateFr(o.date)],['N° pièce',o.piece||'auto'],['Libellé',o.libelle],['Débit (reçoit)',o.debit],['Crédit (donne)',o.credit],['Montant',mad(o.montant)],['Activité',o.activite]];
+  if(o.ligne) rows.push(['Ligne du Journal',o.ligne]);
+  var b = o.erreur ? '<div class="bandeau err">Refusée par le Sheet : '+esc(o.erreur)+'</div>' :
+          o.attente ? '<div class="bandeau att">Enregistrée dans le téléphone, pas encore envoyée au Sheet. Elle partira dès que le réseau revient.</div>' : '';
+  var lib = o.attente||(o.erreur&&!o.ligne) ? 'Annuler cette saisie' : o.erreur ? 'Abandonner la suppression' : 'Supprimer cette opération';
+  document.getElementById('detailCorps').innerHTML = b + rows.map(function(r){return '<div class="ligne2"><span>'+r[0]+'</span><span>'+esc(r[1])+'</span></div>';}).join('') +
+    '<button class="suppr" id="btnSuppr">'+lib+'</button>';
+  document.getElementById('btnSuppr').onclick=supprimer;
+  document.getElementById('detail').className='ecran on';
+}
+function supprimer(){
+  var o=DETAIL; if(!o) return;
+  if(o.id){                         // saisie pas encore envoyée (ou refusée) : on la retire du téléphone
+    if(!confirm('Annuler la saisie « '+(o.libelle||o.debit)+' » de '+mad(o.montant)+' ?')) return;
+    var cible=FILE.filter(function(op){return op.id===o.id;})[0];
+    FILE=FILE.filter(function(op){return op.id!==o.id;});
+    // si un envoi a déjà été tenté, le Sheet l'a peut-être reçue : on lui demande de l'annuler
+    if(cible && cible.tente && !cible.erreur)
+      FILE.push({id:nouvelId(), type:'annul', cible:o.id, controle:{debit:o.debit, credit:o.credit, montant:o.montant}});
+  } else if(o.opSuppr){             // suppression refusée : on l'abandonne
+    FILE=FILE.filter(function(op){return op.id!==o.opSuppr;});
+  } else {                          // opération déjà dans le Sheet : suppression mise en file
+    if(!confirm('Supprimer « '+(o.libelle||o.debit)+' » de '+mad(o.montant)+' ?')) return;
+    FILE.push({id:nouvelId(), type:'suppr', ligne:o.ligne, controle:{debit:o.debit, credit:o.credit, montant:o.montant}});
+  }
+  ecrire(CLE_FILE, FILE); calculer(); dessiner(); fermer('detail'); toast('C\'est fait');
+  synchroniser(false);
+}
+
+/* =========================================================
+   Formulaire de saisie
+   ========================================================= */
+var CONF={
+  dep:{titre:'Dépense', coul:'var(--rouge)', lbCaisse:'Payé avec la caisse', lbRub:'Rubrique de dépense'},
+  rec:{titre:'Recette', coul:'var(--vert2)', lbCaisse:'Encaissé dans la caisse', lbRub:'Rubrique de recette'},
+  tra:{titre:'Transfert entre caisses', coul:'var(--bleu)', lbCaisse:'De la caisse'},
+  aut:{titre:'Autre écriture', coul:'var(--vert)'}
+};
+function activiteDe(caisse){
+  var c=norm(caisse), best='';
+  D.activites.forEach(function(a){ var n=norm(a); if(n && c.indexOf(n)>=0 && n.length>best.length) best=a; });
+  return best || (D.activites.indexOf('Général')>=0?'Général':(D.activites[0]||''));
+}
+function chips(id, liste, val, cb){
+  var el=document.getElementById(id);
+  el.innerHTML=liste.map(function(x){ return '<button type="button" class="chip'+(x===val?' on':'')+'" data-v="'+esc(x)+'">'+esc(x)+'</button>'; }).join('');
+  Array.prototype.forEach.call(el.children, function(b){ b.onclick=function(){ cb(b.dataset.v); }; });
+}
+function options(sel, comptes){
+  var g={}, ordre=[];
+  comptes.forEach(function(c){ var k=c.groupe||c.type||'Autres'; if(!g[k]){g[k]=[];ordre.push(k);} g[k].push(c.nom); });
+  sel.innerHTML='<option value="">— choisir —</option>'+ordre.map(function(k){
+    return '<optgroup label="'+esc(k)+'">'+g[k].map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('')+'</optgroup>';
+  }).join('');
+}
+function ouvrirForm(type){
+  if(!D){ ouvrirReglages(); return; }
+  var caisses=D.caisses.map(function(c){return c.nom;});
+  var dern=lire(CLE_DERN,'');
+  F={type:type, caisse: caisses.indexOf(dern)>=0 ? dern : (caisses.filter(function(c){return /caisse/i.test(c);})[0]||caisses[0]||''), vers:''};
+  if(type==='tra') F.vers=caisses.filter(function(c){return c!==F.caisse;})[0]||'';
+  F.activite = type==='tra' ? (D.activites.indexOf('Général')>=0?'Général':activiteDe(F.vers)) : activiteDe(F.caisse);
+  var c=CONF[type];
+  document.getElementById('formTitre').textContent=c.titre;
+  document.getElementById('formBarre').style.background=c.coul;
+  document.getElementById('btnValider').style.background=c.coul;
+  document.getElementById('bloc-caisse').style.display=type==='aut'?'none':'';
+  document.getElementById('bloc-vers').style.display=type==='tra'?'':'none';
+  document.getElementById('bloc-rub').style.display=(type==='dep'||type==='rec')?'':'none';
+  document.getElementById('bloc-libre').style.display=type==='aut'?'':'none';
+  if(c.lbCaisse) document.getElementById('lb-caisse').textContent=c.lbCaisse;
+  if(c.lbRub) document.getElementById('lb-rub').textContent=c.lbRub;
+  if(type==='dep') options(document.getElementById('f-rub'), D.charges);
+  if(type==='rec') options(document.getElementById('f-rub'), D.produits);
+  if(type==='aut'){ options(document.getElementById('f-deb'), D.comptes); options(document.getElementById('f-cre'), D.comptes); }
+  ['f-montant','f-lib','f-piece'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('f-date').value=aujourdhui();
+  document.getElementById('btnValider').disabled=false;
+  majChoix();
+  document.getElementById('form').className='ecran on';
+  setTimeout(function(){ document.getElementById('f-montant').focus(); },150);
+}
+function majChoix(){
+  var caisses=D.caisses.map(function(c){return c.nom;});
+  chips('c-caisse', caisses, F.caisse, function(v){
+    F.caisse=v;
+    if(F.type==='tra'){ if(F.vers===v) F.vers=caisses.filter(function(c){return c!==v;})[0]||''; }
+    else F.activite=activiteDe(v);
+    majChoix();
+  });
+  chips('c-vers', caisses.filter(function(c){return c!==F.caisse;}), F.vers, function(v){ F.vers=v; majChoix(); });
+  chips('c-act', D.activites, F.activite, function(v){ F.activite=v; majChoix(); });
+  resume();
+}
+function lireMontant(){ return Number(document.getElementById('f-montant').value.replace(/\s/g,'').replace(',','.')); }
+function comptesEcriture(){
+  var rub=document.getElementById('f-rub').value;
+  if(F.type==='dep') return {debit:rub, credit:F.caisse};
+  if(F.type==='rec') return {debit:F.caisse, credit:rub};
+  if(F.type==='tra') return {debit:F.vers, credit:F.caisse};
+  return {debit:document.getElementById('f-deb').value, credit:document.getElementById('f-cre').value};
+}
+function resume(){
+  var e=comptesEcriture(), m=lireMontant();
+  document.getElementById('resume').innerHTML='Écriture : <b>Débit</b> '+esc(e.debit||'…')+' &nbsp;/&nbsp; <b>Crédit</b> '+esc(e.credit||'…')+
+    (m>0?' &nbsp;·&nbsp; <b>'+mad(m)+'</b>':'')+(F.activite?' &nbsp;·&nbsp; '+esc(F.activite):'');
+}
+['f-montant','f-rub','f-deb','f-cre'].forEach(function(id){
+  var el=document.getElementById(id); el.addEventListener('input',resume); el.addEventListener('change',resume);
+});
+function valider(){
+  var e=comptesEcriture(), m=lireMontant();
+  if(!(m>0)) return toast('Saisissez un montant', true);
+  if(!e.debit||!e.credit) return toast(F.type==='aut'?'Choisissez les deux comptes':'Choisissez la rubrique', true);
+  if(e.debit===e.credit) return toast('Les deux comptes doivent être différents', true);
+  if(!F.activite) return toast('Choisissez une activité', true);
+  var lib=document.getElementById('f-lib').value.trim();
+  if(!lib) lib = F.type==='tra' ? 'Transfert '+F.caisse+' → '+F.vers : F.type==='dep' ? e.debit : F.type==='rec' ? e.credit : '';
+  var op={id:nouvelId(), type:'ajout', e:{
+    date:document.getElementById('f-date').value||aujourdhui(), piece:document.getElementById('f-piece').value.trim(),
+    libelle:lib, debit:e.debit, credit:e.credit, montant:Math.round(m*100)/100, activite:F.activite,
+    horodatage:new Date().toISOString()
+  }};
+  document.getElementById('btnValider').disabled=true;
+  FILE.push(op);
+  if(!ecrire(CLE_FILE, FILE)){ FILE.pop(); document.getElementById('btnValider').disabled=false; return; }
+  if(F.type!=='aut') ecrire(CLE_DERN, F.caisse);
+  calculer(); dessiner(); fermer('form');
+  toast(navigator.onLine===false ? 'Enregistré dans le téléphone ✓' : 'Enregistré ✓');
+  synchroniser(false);
+}
+function fermer(id){ document.getElementById(id).className='ecran'; }
+
+/* =========================================================
+   Réglages
+   ========================================================= */
+function ouvrirReglages(){
+  document.getElementById('r-url').value = CFG ? CFG.url : '';
+  document.getElementById('r-cle').value = CFG ? CFG.cle : '';
+  document.getElementById('r-info').textContent = FILE.length ? FILE.length+' opération(s) sont gardées dans ce téléphone.' : '';
+  document.getElementById('btnFermerReglages').style.visibility = CFG ? 'visible' : 'hidden';
+  document.getElementById('reglages').className='ecran on';
+}
+function testerConnexion(){
+  var url=document.getElementById('r-url').value.trim(), cle=document.getElementById('r-cle').value;
+  if(!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(url)) return toast('L\'adresse doit commencer par https://script.google.com/', true);
+  if(!cle) return toast('Saisissez le code secret', true);
+  var b=document.getElementById('btnTester'); b.disabled=true; b.textContent='Connexion…';
+  var cfg={url:url, cle:cle};
+  appelScript({action:'donnees'}, cfg).then(function(rep){
+    b.disabled=false; b.textContent='Tester et enregistrer';
+    if(!rep || !rep.ok) return toast((rep&&rep.erreur)||'Réponse inattendue', true);
+    CFG=cfg; ecrire(CLE_CFG, CFG);
+    CACHE=rep.donnees; CACHE.recuLe=new Date().toISOString(); ecrire(CLE_CACHE, CACHE);
+    derniereErreur=''; calculer(); dessiner(); fermer('reglages');
+    toast('Connecté à votre Google Sheet ✓');
+    if(FILE.length) synchroniser(false);
+  }).catch(function(e){
+    b.disabled=false; b.textContent='Tester et enregistrer';
+    toast('Connexion impossible. Vérifiez l\'adresse, le réseau et le déploiement « Tout le monde ».', true);
+  });
+}
+
+/* =========================================================
+   Démarrage
+   ========================================================= */
+window.addEventListener('online', function(){ derniereErreur=''; synchroniser(false); });
+window.addEventListener('offline', function(){ derniereErreur='horsligne'; dessinerEtat(); });
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') synchroniser(false); });
+setInterval(function(){ if(FILE.some(function(o){return !o.erreur;})) synchroniser(false); }, 60000);
+
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+
+calculer(); dessiner();
+if(!CFG) ouvrirReglages(); else synchroniser(false);
+</script>
+</body>
+</html>
